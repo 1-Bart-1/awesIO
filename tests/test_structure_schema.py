@@ -39,9 +39,9 @@ def test_connectivity_sha_matches_its_documented_preimage(structure):
     names = [row[0] for row in structure["points"]["data"]]
     preimage = f"{len(names)};" + "".join(
         f"{names.index(a) + 1},{names.index(b) + 1};"
-        for _, a, b in structure["segments"]["data"]
+        for _, a, b, *_ in structure["segments"]["data"]
     )
-    assert preimage == "6;1,2;2,3;3,4;4,5;4,6;"
+    assert preimage == "8;1,2;2,3;3,4;4,5;4,7;"
     digest = hashlib.sha256(preimage.encode()).hexdigest()
     assert digest == structure["metadata"]["connectivity_sha"]
 
@@ -50,23 +50,61 @@ def test_n_points_agrees_with_the_points_block(structure):
     assert structure["metadata"]["n_points"] == len(structure["points"]["data"])
 
 
+def test_wings_are_the_bodies_carrying_aero(structure):
+    """There is no wings block; a wing is a body whose `aero` is not null."""
+    wings = [row[0] for row in structure["bodies"]["data"] if row[2] is not None]
+    assert wings == ["wing_left", "wing_right"]
+
+
+def test_every_reference_resolves_to_a_named_row(structure):
+    def names(block):
+        return {row[0] for row in structure.get(block, {"data": []})["data"]}
+
+    points, segments, bodies = names("points"), names("segments"), names("bodies")
+    for _, point_a, point_b, *_ in structure["segments"]["data"]:
+        assert {point_a, point_b} <= points
+    for _, _, members, *_ in structure["stations"]["data"]:
+        assert set(members) <= points
+    for _, start, end, members in structure["tethers"]["data"]:
+        assert {start, end} <= points and set(members) <= segments
+    for block in ("elastic_joints", "timoshenko_joints"):
+        for _, body_a, body_b, *_ in structure[block]["data"]:
+            assert {body_a, body_b} <= bodies
+
+
 @pytest.mark.parametrize(
     "label, mutate",
     [
         ("reordered headers",
-         lambda d: d["points"].update(headers=["type", "name", "wing_idx", "pos_cad"])),
+         lambda d: d["points"].update(
+             headers=["type", "name", "body", "wing", "pos_cad"])),
         ("unknown dynamics type",
          lambda d: d["points"]["data"][0].__setitem__(1, "FLOATING")),
         ("two-component pos_cad",
          lambda d: d["points"]["data"][0].__setitem__(3, [0.0, 0.0])),
-        ("negative wing_idx",
-         lambda d: d["points"]["data"][4].__setitem__(2, -1)),
+        ("a point's body given as an index",
+         lambda d: d["points"]["data"][4].__setitem__(2, 2)),
+        ("negative segment length",
+         lambda d: d["segments"]["data"][0].__setitem__(3, -1.0)),
+        ("efficiency above one",
+         lambda d: d["pulleys"]["data"].append(
+             ["p1", "seg_1", "seg_2", "DYNAMIC", 1.4])),
+        ("a station holding a bare point name",
+         lambda d: d["stations"]["data"][0].__setitem__(2, "le_left")),
+        ("a joint linking a point instead of a body",
+         lambda d: d["elastic_joints"]["data"][0].__setitem__(1, None)),
+        ("a two-component anchor offset",
+         lambda d: d["timoshenko_joints"]["data"][0].__setitem__(3, [0.0, 2.0])),
+        ("negative axial rigidity",
+         lambda d: d["timoshenko_joints"]["data"][0].__setitem__(5, -1.0)),
         ("short segment row",
          lambda d: d["segments"]["data"][0].pop()),
         ("empty component name",
          lambda d: d["segments"]["data"][0].__setitem__(0, "")),
         ("tether segments given as indices",
          lambda d: d["tethers"]["data"][0].__setitem__(3, [1, 2, 3])),
+        ("undeclared transforms block",
+         lambda d: d.update(transforms={"headers": ["name"], "data": []})),
         ("truncated connectivity_sha",
          lambda d: d["metadata"].update(connectivity_sha="abc")),
         ("uppercase connectivity_sha",
@@ -75,8 +113,8 @@ def test_n_points_agrees_with_the_points_block(structure):
          lambda d: d["metadata"].update(awesIO_version="0.1")),
         ("another schema's name",
          lambda d: d["metadata"].update(schema="system_schema.yml")),
-        ("missing winches block",
-         lambda d: d.pop("winches")),
+        ("missing segments block",
+         lambda d: d.pop("segments")),
         ("undeclared top-level block",
          lambda d: d.update(joints={"headers": [], "data": []})),
     ],
@@ -87,10 +125,21 @@ def test_malformed_structures_are_rejected(structure, label, mutate):
     assert_invalid(broken)
 
 
+def test_optional_blocks_may_be_absent(structure):
+    """An absent optional block means the same as an empty one."""
+    sparse = copy.deepcopy(structure)
+    for block in ("stations", "pulleys", "tethers", "winches",
+                  "bodies", "elastic_joints", "timoshenko_joints"):
+        sparse.pop(block)
+    for row in sparse["points"]["data"]:
+        row[2] = row[3] = None
+    assert_valid(sparse)
+
+
 def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     """Blocks are addressed by header, so appended columns must not break v0.1."""
     extended = copy.deepcopy(structure)
-    extended["segments"]["headers"] += ["l0", "diameter", "model"]
+    extended["segments"]["headers"] += ["youngs_modulus"]
     for row in extended["segments"]["data"]:
-        row += [5.0, 0.004, "elastic"]
+        row += [1.1e11]
     assert_valid(extended)

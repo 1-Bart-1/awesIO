@@ -1,11 +1,16 @@
 AWE System Structure Schema
 ===========================
 
-The structure schema describes the **resolved structural topology** of an AWE system:
-the points, and the segments, tethers, winches, pulleys and wing sections that connect
-them. It is the layer :doc:`system_schema` leaves free-form — its ``wing_sections``,
+The structure schema describes the **resolved structural definition** of an AWE
+system: the points, the segments, stations, pulleys, tethers and winches built on
+them, the rigid bodies, and the joints that link those bodies. Each component carries
+its own geometry and material, so a conforming file is a complete structural
+definition rather than a connectivity sketch.
+
+It is the layer :doc:`system_schema` leaves free-form — its ``wing_sections``,
 ``bridle_nodes``, ``bridle_lines`` and ``bridle_connections`` blocks are bare
-``type: object`` under ``additionalProperties: true``, so today any content validates.
+``type: object`` under ``additionalProperties: true``, so today any content
+validates.
 
 Plotting is the clearest symptom of not having it. Two tools cannot draw each other's
 system because neither can describe it, so every viewer is written against one model.
@@ -19,8 +24,8 @@ Canonical form only
 -------------------
 
 A conforming file is **fully resolved and expanded**: no variable substitution block,
-no segment counts left to expand, every point and segment explicit. It is readable
-with nothing beyond a YAML or JSON parser.
+no segment counts left to expand, every component explicit. It is readable with
+nothing beyond a YAML or JSON parser.
 
 Authoring dialects — multi-variable substitution, tether expansion, defaults — stay
 profiles of the tool that defines them and *emit* canonical files. An interchange
@@ -38,18 +43,55 @@ reads as a spreadsheet and rows reorder without rewriting indices:
 .. code-block:: yaml
 
    segments:
-     headers: [name, point_a, point_b]
+     headers: [name, point_a, point_b, l0, diameter, density,
+               unit_stiffness, unit_damping, compression_frac,
+               compression_damping_frac]
      data:
-       - [seg_1, ground, tether_1]
-       - [seg_2, tether_1, tether_2]
+       - [seg_1, ground, tether_1, 10.0, 0.004, 724.0, 614600.0, 473.0, 0.1, 1.0]
 
 A block may carry columns beyond the ones the schema requires. **A reader addresses
 columns by header, never by position** — that is what lets a later minor version
-append a column without breaking an older reader.
+append a column without breaking an older reader. An absent optional block means the
+same as an empty one; only ``metadata``, ``points`` and ``segments`` are required.
 
 YAML and JSON are two encodings of one model. JSON is the machine encoding, and it
 travels in the table-level metadata of an Arrow state log under the key ``topology``,
 which is what makes a log self-describing: plotting it needs no sidecar file.
+
+Stations are not aerodynamic sections
+-------------------------------------
+
+A **station** is a group of points sharing one twist degree of freedom. It is a
+structural group, and it is coarser than the aerodynamic mesh: a wing meshed at forty
+panels may carry four stations, each spanning ten of them.
+
+The distinction is worth stating because conflating the two is a mistake that has
+already been made and fixed once in a reference implementation, where a station count
+was passed as a section count and produced a four-section wing. A reader that builds
+a lifting surface by pairing adjacent station rows will draw the wrong shape. Station
+rows carry no spanwise ordering guarantee and none should be assumed.
+
+Bodies, wings and joints
+------------------------
+
+Rigid bodies live in one ``bodies`` block. **A wing is a body that carries an
+aerodynamic model**, so the wings of a system are the rows whose ``aero`` is not
+null. There is no separate wings block, because two blocks describing overlapping
+sets of the same objects fall out of step.
+
+Joints link two bodies by name, never points, and come in two blocks because their
+field sets genuinely differ rather than their values: an ``elastic_joint`` holds four
+stiffnesses resolved about relative degrees of freedom, while a
+``timoshenko_joint`` holds ``EA``, ``GA``, ``GJ``, ``EIy`` and ``EIz`` with a shear
+correction factor, and a chain of them forms a beam.
+
+Every stiffness and rigidity accepts either a number — the linear value, in the units
+its column names — or a **string naming a nonlinear law** the reader resolves to a
+function of the corresponding strain, curvature or deflection. How such a law is
+defined is not yet part of this schema, so a file using one is portable only between
+readers that know the name. Both joint blocks also carry ``radius``, which is the
+cylinder radius for drawing the element and has no effect on dynamics; null means the
+element is not drawn.
 
 Versioning
 ----------
@@ -68,7 +110,7 @@ The ``metadata`` block carries two fields that are easy to confuse:
 ``connectivity_sha`` guards the pairing of a structure with a state log. Its preimage
 is ASCII and built in document order: the point count, a semicolon, then each
 segment's two endpoints as **one-based** row numbers into the points block, comma
-separated and semicolon terminated. The example file reads ``6;1,2;2,3;3,4;4,5;4,6;``.
+separated and semicolon terminated. The example file reads ``8;1,2;2,3;3,4;4,5;4,7;``.
 The one-based convention is stated because a zero-based implementation would disagree
 with every file ever written and see them all as mismatches.
 
@@ -79,40 +121,22 @@ CAD geometry is not a world position
 world position of a point depends on elevation, azimuth, heading and tether length,
 which are state, not structure.
 
-The ``transforms`` block that maps CAD geometry into the world frame is **deliberately
-absent from version 0.1**. It is the one part of the document whose meaning depends on
-a settled frame convention, and that convention is still being unified upstream. Until
-"the orientation in this file" means exactly one thing, specifying it here would bake
-in the ambiguity. It arrives as an additive minor version once the frames settle.
+The transforms that place CAD geometry into the world are **not part of this schema**,
+and not because they are unfinished. Placement is a separate concern from structure —
+the same structure flies at any elevation — and its meaning depends on a frame
+convention that must be settled before "the orientation in this file" means one thing.
 
-Scope of version 0.1
---------------------
+What is not described here
+--------------------------
 
-Version 0.1 specifies **connectivity and design geometry**: which points exist, where
-they sit in the CAD frame, what connects to what, and how segments group into tethers,
-winches, pulleys and wing sections. That much is settled — it is what existing
-writers already emit and existing viewers already read.
-
-Deliberately not yet specified:
-
-* **Material and section properties** — rest length, diameter, density.
-* **Constitutive models** — linear versus tabulated springs, elastic versus
-  Timoshenko joints, and the type-dependent validation that goes with them.
-* **Transforms**, for the frame reason above.
-* A **wings** block. ``wing_idx`` on a point is consequently the one reference in the
-  document that is not by name, and points into nothing. It is marked provisional in
-  the schema.
-
-These are not oversights and they are not hard to add: each is a column or a block
-appended under the forward-compatibility rule above. They are held back because a
-schema for a constitutive model is that model's type hierarchy written down, and
-writing it before the model exists would mean guessing, then breaking the guess. The
-reference implementation is being factored out now; these blocks follow it rather than
-lead it.
+Live state: positions, velocities, forces, twist angles, reel-out lengths. A structure
+is written once; state is written every step, which is why it belongs in the columns
+of a log rather than in this document.
 
 Example
 -------
 
-``examples/structure/minimal_structure.yml`` is the smallest file that exercises every
-block. A worked, physically meaningful system follows once a writer emits conforming
-files.
+``examples/structure/minimal_structure.yml`` exercises every block: a ground anchor, a
+three-segment tether, a control unit on the bridle, and two wing bodies joined to it.
+It is illustrative rather than a physical system; a worked kite follows once a writer
+emits conforming files.
