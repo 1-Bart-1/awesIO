@@ -91,6 +91,7 @@ workflow.
    :caption: Schema Reference
 
    source/system_schema
+   source/structure_schema
    source/wind_resource_schema
    source/power_curves_schema
    source/operational_constraints_schema

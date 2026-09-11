@@ -1,0 +1,266 @@
+$schema: http://json-schema.org/draft-07/schema#
+$id: structure_schema
+title: AWE System Structure Schema
+description: >
+  Resolved structural topology of an AWE system: the points, and the segments,
+  tethers, winches, pulleys and wing sections connecting them. Fully expanded —
+  no variable substitution, no segment counts to expand, every component
+  explicit — so a file is readable with nothing beyond a YAML or JSON parser.
+  This is the layer system_schema.yml leaves free-form under its wing_sections,
+  bridle_nodes, bridle_lines and bridle_connections blocks.
+
+  Every block is a headers/data table and every reference is by name, so a file
+  reads as a spreadsheet and reorders without rewriting indices. Blocks may
+  carry columns beyond the ones required here; a reader addresses columns by
+  header, never by position.
+
+type: object
+required:
+  - metadata
+  - points
+  - segments
+  - tethers
+  - winches
+  - pulleys
+
+properties:
+  metadata:
+    type: object
+    required:
+      - name
+      - description
+      - note
+      - awesIO_version
+      - schema
+      - n_points
+      - connectivity_sha
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      note:
+        type: string
+      awesIO_version:
+        type: string
+        description: >
+          Version of this schema the file was written against. A reader must
+          refuse an unknown major version and warn on an unknown minor one.
+        pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
+      schema:
+        type: string
+        const: structure_schema.yml
+      n_points:
+        type: integer
+        minimum: 1
+        description: Number of rows in the points block.
+      connectivity_sha:
+        type: string
+        description: >
+          Lowercase hex SHA-256 of the connectivity, so state recorded against
+          one structure is not silently replayed against another that indexes
+          differently.
+
+          The preimage is ASCII and built in document order: the number of
+          points, a semicolon, then for each segment its two endpoints as
+          ONE-BASED row numbers into the points block, comma-separated, each
+          pair followed by a semicolon. The six-point example in
+          examples/structure reads `6;1,2;2,3;3,4;4,5;4,6;`. Row numbers are
+          one-based so that implementations in zero-based languages agree with
+          the Julia writer; a reader that gets this wrong sees every file as a
+          mismatch.
+        pattern: '^[0-9a-f]{64}$'
+    additionalProperties: false
+
+  points:
+    allOf:
+      - $ref: "#/definitions/table"
+      - properties:
+          headers:
+            items:
+              - const: name
+              - const: type
+              - const: wing_idx
+              - const: pos_cad
+            minItems: 4
+          data:
+            items:
+              type: array
+              items:
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/dynamics_type"
+                - $ref: "#/definitions/wing_idx"
+                - $ref: "#/definitions/vec3"
+              minItems: 4
+
+  segments:
+    allOf:
+      - $ref: "#/definitions/table"
+      - properties:
+          headers:
+            items:
+              - const: name
+              - const: point_a
+              - const: point_b
+            minItems: 3
+          data:
+            items:
+              type: array
+              items:
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/component_name"
+              minItems: 3
+
+  tethers:
+    allOf:
+      - $ref: "#/definitions/table"
+      - properties:
+          headers:
+            items:
+              - const: name
+              - const: start_point
+              - const: end_point
+              - const: segments
+            minItems: 4
+          data:
+            items:
+              type: array
+              items:
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/name_list"
+              minItems: 4
+
+  winches:
+    allOf:
+      - $ref: "#/definitions/table"
+      - properties:
+          headers:
+            items:
+              - const: name
+              - const: tethers
+              - const: winch_point
+            minItems: 3
+          data:
+            items:
+              type: array
+              items:
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/name_list"
+                - $ref: "#/definitions/component_name"
+              minItems: 3
+
+  pulleys:
+    allOf:
+      - $ref: "#/definitions/table"
+      - properties:
+          headers:
+            items:
+              - const: name
+              - const: segment_a
+              - const: segment_b
+            minItems: 3
+          data:
+            items:
+              type: array
+              items:
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/component_name"
+              minItems: 3
+
+  wing_sections:
+    allOf:
+      - $ref: "#/definitions/table"
+      - properties:
+          headers:
+            items:
+              - const: name
+              - const: le_point
+              - const: te_point
+              - const: attachments
+            minItems: 4
+          data:
+            items:
+              type: array
+              items:
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/name_list"
+              minItems: 4
+
+additionalProperties: false
+
+definitions:
+  # ============================================================================
+  # TABLES
+  # ============================================================================
+  table:
+    description: >
+      A headers/data block. Each block below fixes the columns it requires as
+      the leading headers and leaves the rest open, so a writer may append
+      columns and an older reader still finds what it addresses by name.
+    type: object
+    required:
+      - headers
+      - data
+    properties:
+      headers:
+        type: array
+        additionalItems:
+          type: string
+      data:
+        type: array
+        items:
+          type: array
+          additionalItems: true
+    additionalProperties: false
+
+  # ============================================================================
+  # COMPONENTS
+  # ============================================================================
+  component_name:
+    description: >
+      Name of a component in this document. Names are unique within their own
+      block and are how every other block refers to it.
+    type: string
+    minLength: 1
+
+  name_list:
+    description: Ordered component names, as referenced from another block.
+    type: array
+    items:
+      $ref: "#/definitions/component_name"
+
+  vec3:
+    description: >
+      A three-component vector in the CAD design frame [m]. CAD geometry is not
+      a world position — see the note on frames in the documentation.
+    type: array
+    items:
+      type: number
+    minItems: 3
+    maxItems: 3
+
+  dynamics_type:
+    description: >
+      The dynamic model governing a point's motion. DYNAMIC points carry
+      differential state and are solved by the dynamics; the others are
+      prescribed, holding no state but mutable between steps.
+    type: string
+    enum:
+      - DYNAMIC
+      - STATIC
+      - BODY_STATIC
+      - KINEMATIC
+
+  wing_idx:
+    description: >
+      Index of the wing a point belongs to, or 0 when it is not a wing node.
+      Provisional: this is the one reference in the document that is not by
+      name, and v0.1 defines no wings block for it to point into.
+    type: integer
+    minimum: 0

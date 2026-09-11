@@ -1,0 +1,50 @@
+# Smallest file that conforms to structure_schema.yml: a ground anchor, a
+# three-segment tether, and a two-section wing on a bridle. It exercises every
+# block rather than describing a real system; the worked V3 kite follows once
+# SymbolicAWEModels emits conforming files.
+metadata:
+  name: minimal
+  description: Minimal conforming resolved structure
+  note: Illustrative only — not a physical system.
+  awesIO_version: 0.1.0
+  schema: structure_schema.yml
+  n_points: 6
+  connectivity_sha: "74811d8787a4005d413dcd396c3b28db956df48361c62f43908b3492e8ee840f"
+
+points:
+  headers: [name, type, wing_idx, pos_cad]
+  data:
+    - [ground, STATIC, 0, [0.0, 0.0, 0.0]]
+    - [tether_1, DYNAMIC, 0, [0.0, 0.0, 10.0]]
+    - [tether_2, DYNAMIC, 0, [0.0, 0.0, 20.0]]
+    - [bridle, DYNAMIC, 0, [0.0, 0.0, 30.0]]
+    - [le_left, DYNAMIC, 1, [0.0, -2.0, 32.0]]
+    - [le_right, DYNAMIC, 1, [0.0, 2.0, 32.0]]
+
+segments:
+  headers: [name, point_a, point_b]
+  data:
+    - [seg_1, ground, tether_1]
+    - [seg_2, tether_1, tether_2]
+    - [seg_3, tether_2, bridle]
+    - [bridle_left, bridle, le_left]
+    - [bridle_right, bridle, le_right]
+
+tethers:
+  headers: [name, start_point, end_point, segments]
+  data:
+    - [main, ground, bridle, [seg_1, seg_2, seg_3]]
+
+winches:
+  headers: [name, tethers, winch_point]
+  data:
+    - [ground_station, [main], ground]
+
+pulleys:
+  headers: [name, segment_a, segment_b]
+  data: []
+
+wing_sections:
+  headers: [name, le_point, te_point, attachments]
+  data:
+    - [section_left, le_left, le_right, [bridle]]
