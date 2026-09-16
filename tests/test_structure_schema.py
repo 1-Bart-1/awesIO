@@ -118,8 +118,6 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["segments"]["data"][0].__setitem__(0, "")),
         ("tether segments given as indices",
          lambda d: d["tethers"]["data"][0].__setitem__(3, [1, 2, 3])),
-        ("undeclared transforms block",
-         lambda d: d.update(transforms={"headers": ["name"], "data": []})),
         ("truncated connectivity_sha",
          lambda d: d["metadata"].update(connectivity_sha="abc")),
         ("uppercase connectivity_sha",
@@ -130,8 +128,16 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["metadata"].update(schema="system_schema.yml")),
         ("missing segments block",
          lambda d: d.pop("segments")),
-        ("undeclared top-level block",
-         lambda d: d.update(joints={"headers": [], "data": []})),
+        ("a non-string appended header",
+         lambda d: d["segments"]["headers"].append(42)),
+        ("a row shorter than its appended headers",
+         lambda d: d["segments"]["headers"].append("youngs_modulus")),
+        ("a row longer than its headers",
+         lambda d: d["segments"]["data"][0].append(1.1e11)),
+        ("an undeclared key inside metadata",
+         lambda d: d["metadata"].update(tool="SAM")),
+        ("an undeclared key beside a table's headers and data",
+         lambda d: d["segments"].update(units=["-"])),
     ],
 )
 def test_malformed_structures_are_rejected(structure, label, mutate):
@@ -157,4 +163,12 @@ def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     extended["segments"]["headers"] += ["youngs_modulus"]
     for row in extended["segments"]["data"]:
         row += [1.1e11]
+    assert_valid(extended)
+
+
+def test_a_reader_accepts_blocks_a_tool_adds_beside_the_core(structure):
+    """A tool's own data rides as extra top-level blocks of any shape."""
+    extended = copy.deepcopy(structure)
+    extended["wings"] = {"headers": ["name", "n_panels"], "data": [["wing_left", 40]]}
+    extended["transforms"] = [{"elevation": 70.0, "azimuth": 0.0}]
     assert_valid(extended)
