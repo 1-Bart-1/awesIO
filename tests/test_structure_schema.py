@@ -39,7 +39,7 @@ def test_connectivity_sha_matches_its_documented_preimage(structure):
     names = [row[0] for row in structure["points"]["data"]]
     preimage = f"{len(names)};" + "".join(
         f"{names.index(a) + 1},{names.index(b) + 1};"
-        for _, a, b, *_ in structure["segments"]["data"]
+        for _, (a, b), *_ in structure["segments"]["data"]
     )
     assert preimage == "8;1,2;2,3;3,4;4,5;4,7;"
     digest = hashlib.sha256(preimage.encode()).hexdigest()
@@ -56,20 +56,29 @@ def test_wings_are_the_bodies_carrying_aero(structure):
     assert wings == ["wing_left", "wing_right"]
 
 
+def test_a_point_on_a_wing_names_that_wing_once(structure):
+    """`wing` is null where `body` already is the wing the point belongs to."""
+    wings = {row[0] for row in structure["bodies"]["data"] if row[2] is not None}
+    for name, _, body, wing, _ in structure["points"]["data"]:
+        assert not (body in wings and wing is not None), name
+
+
 def test_every_reference_resolves_to_a_named_row(structure):
     def names(block):
         return {row[0] for row in structure.get(block, {"data": []})["data"]}
 
     points, segments, bodies = names("points"), names("segments"), names("bodies")
-    for _, point_a, point_b, *_ in structure["segments"]["data"]:
-        assert {point_a, point_b} <= points
+    for _, endpoints, *_ in structure["segments"]["data"]:
+        assert set(endpoints) <= points
+    for _, pair, *_ in structure["pulleys"]["data"]:
+        assert set(pair) <= segments
     for _, _, members, *_ in structure["stations"]["data"]:
         assert set(members) <= points
     for _, start, end, members in structure["tethers"]["data"]:
         assert {start, end} <= points and set(members) <= segments
     for block in ("elastic_joints", "timoshenko_joints"):
-        for _, body_a, body_b, *_ in structure[block]["data"]:
-            assert {body_a, body_b} <= bodies
+        for _, pair, *_ in structure[block]["data"]:
+            assert set(pair) <= bodies
 
 
 @pytest.mark.parametrize(
@@ -81,22 +90,28 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("unknown dynamics type",
          lambda d: d["points"]["data"][0].__setitem__(1, "FLOATING")),
         ("two-component pos_cad",
-         lambda d: d["points"]["data"][0].__setitem__(3, [0.0, 0.0])),
+         lambda d: d["points"]["data"][0].__setitem__(4, [0.0, 0.0])),
         ("a point's body given as an index",
          lambda d: d["points"]["data"][4].__setitem__(2, 2)),
+        ("a segment with three endpoints",
+         lambda d: d["segments"]["data"][0][1].append("tether_2")),
         ("negative segment length",
-         lambda d: d["segments"]["data"][0].__setitem__(3, -1.0)),
+         lambda d: d["segments"]["data"][0].__setitem__(2, -1.0)),
         ("efficiency above one",
          lambda d: d["pulleys"]["data"].append(
-             ["p1", "seg_1", "seg_2", "DYNAMIC", 1.4])),
+             ["p1", ["seg_1", "seg_2"], "DYNAMIC", 1.4])),
         ("a station holding a bare point name",
          lambda d: d["stations"]["data"][0].__setitem__(2, "le_left")),
         ("a joint linking a point instead of a body",
-         lambda d: d["elastic_joints"]["data"][0].__setitem__(1, None)),
+         lambda d: d["elastic_joints"]["data"][0][1].__setitem__(1, None)),
+        ("a joint with one anchor",
+         lambda d: d["elastic_joints"]["data"][0][2].pop()),
         ("a two-component anchor offset",
-         lambda d: d["timoshenko_joints"]["data"][0].__setitem__(3, [0.0, 2.0])),
+         lambda d: d["timoshenko_joints"]["data"][0][2].__setitem__(0, [0.0, 2.0])),
+        ("body offsets under the old body-frame suffix",
+         lambda d: d["bodies"]["headers"].__setitem__(7, "com_offset_b")),
         ("negative axial rigidity",
-         lambda d: d["timoshenko_joints"]["data"][0].__setitem__(5, -1.0)),
+         lambda d: d["timoshenko_joints"]["data"][0].__setitem__(3, -1.0)),
         ("short segment row",
          lambda d: d["segments"]["data"][0].pop()),
         ("empty component name",

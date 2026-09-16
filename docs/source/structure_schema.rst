@@ -43,11 +43,14 @@ reads as a spreadsheet and rows reorder without rewriting indices:
 .. code-block:: yaml
 
    segments:
-     headers: [name, point_a, point_b, l0, diameter, density,
-               unit_stiffness, unit_damping, compression_frac,
-               compression_damping_frac]
+     headers: [name, points, l0, diameter, density, unit_stiffness,
+               unit_damping, compression_frac, compression_damping_frac]
      data:
-       - [seg_1, ground, tether_1, 10.0, 0.004, 724.0, 614600.0, 473.0, 0.1, 1.0]
+       - [seg_1, [ground, tether_1], 10.0, 0.004, 724.0, 614600.0, 473.0, 0.1, 1.0]
+
+What an element connects is one column holding a two-element tuple — a segment's
+``points``, a pulley's ``segments``, a joint's ``bodies`` and ``anchors_KA`` — so the
+schema fixes that there are exactly two.
 
 A block may carry columns beyond the ones the schema requires. **A reader addresses
 columns by header, never by position** — that is what lets a later minor version
@@ -78,6 +81,11 @@ Rigid bodies live in one ``bodies`` block. **A wing is a body that carries an
 aerodynamic model**, so the wings of a system are the rows whose ``aero`` is not
 null. There is no separate wings block, because two blocks describing overlapping
 sets of the same objects fall out of step.
+
+For the same reason a point names its wing once. ``body`` is the rigid body a
+``BODY_STATIC`` point is fixed to; ``wing`` is the wing a point belongs to where
+``body`` does not already name it — a free node of a wing, or a point on a non-wing
+body that moves with one — and null otherwise.
 
 Joints link two bodies by name, never points, and come in two blocks because their
 field sets genuinely differ rather than their values: an ``elastic_joint`` holds four
@@ -114,17 +122,25 @@ separated and semicolon terminated. The example file reads ``8;1,2;2,3;3,4;4,5;4
 The one-based convention is stated because a zero-based implementation would disagree
 with every file ever written and see them all as mismatches.
 
-CAD geometry is not a world position
-------------------------------------
+Frames
+------
+
+A column's suffix names the frame of its vectors, following KiteUtils.jl:
+
+``_cad``
+   The CAD design frame the geometry was drawn in.
+
+``_KA``
+   The owning body's kite-aero frame: x from leading to trailing edge, y from the left
+   to the right tip, z up.
 
 ``pos_cad`` is **design** geometry. Never draw it as if it were a world position: the
-world position of a point depends on elevation, azimuth, heading and tether length,
-which are state, not structure.
+position of a point in the ENU world frame depends on elevation, azimuth, heading and
+tether length, which are state, not structure.
 
 The transforms that place CAD geometry into the world are **not part of this schema**,
-and not because they are unfinished. Placement is a separate concern from structure —
-the same structure flies at any elevation — and its meaning depends on a frame
-convention that must be settled before "the orientation in this file" means one thing.
+and not because they are unfinished. Placement is a separate concern from structure:
+the same structure flies at any elevation.
 
 What is not described here
 --------------------------
