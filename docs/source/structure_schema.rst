@@ -54,8 +54,17 @@ schema fixes that there are exactly two.
 
 A block may carry columns beyond the ones the schema requires. **A reader addresses
 columns by header, never by position** — that is what lets a later minor version
-append a column without breaking an older reader. An absent optional block means the
-same as an empty one; only ``metadata``, ``points`` and ``segments`` are required.
+append a column without breaking an older reader. Every header is a string and every
+row is exactly as long as its headers; the ``table`` definition states the latter as
+``rowsMatchHeaders``, a keyword ``awesio.validator`` enforces and other draft-07
+validators skip. An absent optional block means the same as an empty one; only
+``metadata``, ``points`` and ``segments`` are required.
+
+A tool carries data of its own beside this core as extra columns and as extra
+top-level blocks of any shape, such as SAM's ``transforms`` and ``groups``; ``metadata``
+and a table's own keys stay closed. **A reader ignores every column and block it does
+not know.** A later minor version may claim any such name for the schema, after which
+the tool renames its own.
 
 YAML and JSON are two encodings of one model. JSON is the machine encoding, and it
 travels in the table-level metadata of an Arrow state log under the key ``topology``,
