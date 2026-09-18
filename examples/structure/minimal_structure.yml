@@ -1,0 +1,76 @@
+# A file exercising every block of structure_schema.yml: a ground anchor, a
+# three-segment tether, a control unit on the bridle, and two wing bodies
+# joined to it. It is illustrative, not a physical system; a worked kite
+# follows once a writer emits conforming files.
+metadata:
+  name: minimal
+  description: Minimal conforming resolved structure
+  note: Illustrative only — the numbers are not a real system.
+  awesIO_version: 0.1.0
+  schema: structure_schema.yml
+  n_points: 8
+  connectivity_sha: "d98529e23af6047ce9f49f172743d5dcef053f6a768a3b53de6d47260afd60b7"
+
+points:
+  headers: [name, type, body, wing, pos_cad]
+  data:
+    - [ground, STATIC, null, null, [0.0, 0.0, 0.0]]
+    - [tether_1, DYNAMIC, null, null, [0.0, 0.0, 10.0]]
+    - [tether_2, DYNAMIC, null, null, [0.0, 0.0, 20.0]]
+    - [kcu_node, BODY_STATIC, kcu, null, [0.0, 0.0, 30.0]]
+    - [le_left, BODY_STATIC, wing_left, null, [0.0, -2.0, 32.0]]
+    - [te_left, BODY_STATIC, wing_left, null, [-0.8, -2.0, 31.8]]
+    - [le_right, BODY_STATIC, wing_right, null, [0.0, 2.0, 32.0]]
+    - [te_right, BODY_STATIC, wing_right, null, [-0.8, 2.0, 31.8]]
+
+segments:
+  headers: [name, points, l0, diameter, density, unit_stiffness, unit_damping,
+            compression_frac, compression_damping_frac]
+  data:
+    - [seg_1, [ground, tether_1], 10.0, 0.004, 724.0, 614600.0, 473.0, 0.1, 1.0]
+    - [seg_2, [tether_1, tether_2], 10.0, 0.004, 724.0, 614600.0, 473.0, 0.1, 1.0]
+    - [seg_3, [tether_2, kcu_node], 10.0, 0.004, 724.0, 614600.0, 473.0, 0.1, 1.0]
+    - [bridle_left, [kcu_node, le_left], 2.1, 0.002, 724.0, 153650.0, 118.0, 0.0, 1.0]
+    - [bridle_right, [kcu_node, le_right], 2.1, 0.002, 724.0, 153650.0, 118.0, 0.0, 1.0]
+
+stations:
+  headers: [name, type, points, stiffness, damping]
+  data:
+    - [station_left, DYNAMIC, [le_left, te_left], 120.0, 8.0]
+    - [station_right, DYNAMIC, [le_right, te_right], 120.0, 8.0]
+
+pulleys:
+  headers: [name, segments, type, efficiency]
+  data: []
+
+tethers:
+  headers: [name, start_point, end_point, segments]
+  data:
+    - [main, ground, kcu_node, [seg_1, seg_2, seg_3]]
+
+winches:
+  headers: [name, tethers, winch_point, model, gear_ratio, drum_radius]
+  data:
+    - [ground_station, [main], ground, TorqueControlledMachine, 6.2, 0.11]
+
+bodies:
+  headers: [name, type, aero, wing, mass, apparent_mass, inertia_principal,
+            com_offset_KA, pos_cad]
+  data:
+    - [kcu, DYNAMIC, null, null, 8.4, 0.0, [0.2, 0.2, 0.2], [0.0, 0.0, 0.0], [0.0, 0.0, 30.0]]
+    - [wing_left, DYNAMIC, VSM, null, 3.0, 0.6, [0.5, 1.2, 1.5], [-0.3, 0.0, 0.0], [0.0, -2.0, 32.0]]
+    - [wing_right, DYNAMIC, VSM, null, 3.0, 0.6, [0.5, 1.2, 1.5], [-0.3, 0.0, 0.0], [0.0, 2.0, 32.0]]
+
+elastic_joints:
+  headers: [name, bodies, anchors_KA, stiffness_axial, stiffness_shear,
+            stiffness_torsion, stiffness_bending, damping, radius]
+  data:
+    - [kcu_to_left, [kcu, wing_left], [[0.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+       120000.0, 40000.0, 900.0, 1500.0, 0.002, null]
+
+timoshenko_joints:
+  headers: [name, bodies, anchors_KA, EA, GA, GJ, EIy, EIz, shear_coeff, damping,
+            rest_length, radius]
+  data:
+    - [le_tube, [wing_left, wing_right], [[0.0, 2.0, 0.0], [0.0, -2.0, 0.0]],
+       180000.0, 60000.0, 210.0, 340.0, 340.0, 0.888888888888889, 0.004, 4.0, 0.06]

@@ -23,7 +23,8 @@ FILES_TO_VALIDATE = [
     "examples/ground_gen/soft_kite_pumping_ground_gen_operational_constraints.yml",
     "examples/ground_gen/soft_kite_pumping_ground_gen_power_curves.yml",
     "examples/system_config/soft_kite_pumping_ground_gen_system.yml",
-    "examples/system_config/fixed_wing_multiple_tether_GG_system.yml"
+    "examples/system_config/fixed_wing_multiple_tether_GG_system.yml",
+    "examples/structure/minimal_structure.yml"
 ]
 # ============================================================================
 
