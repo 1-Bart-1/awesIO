@@ -30,6 +30,11 @@ def assert_invalid(data):
         validate(data)
 
 
+def wing_names(structure):
+    """There is no wings block; a wing is a body whose `aero` is not null."""
+    return {row[0] for row in structure["bodies"]["data"] if row[2] is not None}
+
+
 def test_example_conforms(structure):
     assert_valid(structure)
 
@@ -51,16 +56,22 @@ def test_n_points_agrees_with_the_points_block(structure):
 
 
 def test_wings_are_the_bodies_carrying_aero(structure):
-    """There is no wings block; a wing is a body whose `aero` is not null."""
-    wings = [row[0] for row in structure["bodies"]["data"] if row[2] is not None]
-    assert wings == ["wing_left", "wing_right"]
+    assert wing_names(structure) == {"wing_left", "wing_right"}
 
 
 def test_a_point_on_a_wing_names_that_wing_once(structure):
     """`wing` is null where `body` already is the wing the point belongs to."""
-    wings = {row[0] for row in structure["bodies"]["data"] if row[2] is not None}
-    for name, _, body, wing, _ in structure["points"]["data"]:
+    wings = wing_names(structure)
+    for name, _, body, wing, *_ in structure["points"]["data"]:
         assert not (body in wings and wing is not None), name
+
+
+def test_a_body_includes_the_mass_of_the_points_fixed_to_it(structure):
+    """A reader must not add a BODY_STATIC point's `mass` to its body's again."""
+    for body, _, _, _, body_mass, *_ in structure["bodies"]["data"]:
+        point_mass = sum(row[5] for row in structure["points"]["data"]
+                         if row[2] == body)
+        assert point_mass <= body_mass, body
 
 
 def test_every_reference_resolves_to_a_named_row(structure):
@@ -68,12 +79,13 @@ def test_every_reference_resolves_to_a_named_row(structure):
         return {row[0] for row in structure.get(block, {"data": []})["data"]}
 
     points, segments, bodies = names("points"), names("segments"), names("bodies")
+    wings = wing_names(structure)
     for _, endpoints, *_ in structure["segments"]["data"]:
         assert set(endpoints) <= points
     for _, pair, *_ in structure["pulleys"]["data"]:
         assert set(pair) <= segments
-    for _, _, members, *_ in structure["stations"]["data"]:
-        assert set(members) <= points
+    for _, _, wing, members, *_ in structure["stations"]["data"]:
+        assert wing in wings and set(members) <= points
     for _, start, end, members in structure["tethers"]["data"]:
         assert {start, end} <= points and set(members) <= segments
     for block in ("elastic_joints", "timoshenko_joints"):
@@ -100,8 +112,14 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("efficiency above one",
          lambda d: d["pulleys"]["data"].append(
              ["p1", ["seg_1", "seg_2"], "DYNAMIC", 1.4])),
+        ("a point with negative mass",
+         lambda d: d["points"]["data"][3].__setitem__(5, -8.4)),
+        ("a point row without its drag coefficient",
+         lambda d: d["points"]["data"][3].pop()),
+        ("a station naming no wing",
+         lambda d: d["stations"]["data"][0].__setitem__(2, None)),
         ("a station holding a bare point name",
-         lambda d: d["stations"]["data"][0].__setitem__(2, "le_left")),
+         lambda d: d["stations"]["data"][0].__setitem__(3, "le_left")),
         ("a joint linking a point instead of a body",
          lambda d: d["elastic_joints"]["data"][0][1].__setitem__(1, None)),
         ("a joint with one anchor",

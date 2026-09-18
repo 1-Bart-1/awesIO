@@ -83,6 +83,10 @@ was passed as a section count and produced a four-section wing. A reader that bu
 a lifting surface by pairing adjacent station rows will draw the wrong shape. Station
 rows carry no spanwise ordering guarantee and none should be assumed.
 
+A station names the wing whose twist it carries in its ``wing`` column. That is stated
+rather than left to be inferred from the station's points, which name their wing through
+``body`` or ``wing`` and need not all be nodes of it.
+
 Bodies, wings and joints
 ------------------------
 
@@ -95,6 +99,12 @@ For the same reason a point names its wing once. ``body`` is the rigid body a
 ``BODY_STATIC`` point is fixed to; ``wing`` is the wing a point belongs to where
 ``body`` does not already name it — a free node of a wing, or a point on a non-wing
 body that moves with one — and null otherwise.
+
+A point carries its own ``mass``, not counting the segments attached to it, and the
+``drag_area`` its ``drag_coefficient`` refers to. **A body's ``mass``,
+``inertia_principal`` and ``com_offset_KA`` already include the points fixed to it**: a
+reader takes the body row as it stands, rather than deriving it from those points or
+adding them to it again.
 
 Joints link two bodies by name, never points, and come in two blocks because their
 field sets genuinely differ rather than their values: an ``elastic_joint`` holds four
