@@ -1,6 +1,5 @@
-# Kept for elastic_joints, the one block the two V3 kite documents beside it
-# leave empty. It exercises every other block too — a ground anchor through two
-# wing bodies — but its numbers are illustrative, not a physical system.
+# A ground anchor through two wing bodies: every block of the schema at once, and
+# the only example here carrying an elastic joint.
 metadata:
   name: minimal
   description: Minimal conforming resolved structure

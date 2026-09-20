@@ -16,7 +16,7 @@ EXAMPLES = sorted(EXAMPLE_DIR.glob("*.yml"))
 
 @pytest.fixture(params=EXAMPLES, ids=lambda path: path.stem)
 def structure(request):
-    """Every committed example in turn, so a new one is covered by being committed."""
+    """Every .yml in examples/structure, so the invariants below cover all of them."""
     return load_yaml(request.param)
 
 
@@ -66,8 +66,14 @@ def test_n_points_agrees_with_the_points_block(structure):
 
 def test_wings_are_the_bodies_carrying_aero(structure):
     """There is no wings block; a wing is a body whose `aero` is not null."""
-    wings = [row[0] for row in structure["bodies"]["data"] if row[2] is not None]
+    wings = {row[0] for row in structure["bodies"]["data"] if row[2] is not None}
     assert wings, "every example describes a system that flies"
+    assert {row[3] for row in structure["points"]["data"] if row[3]} <= wings
+
+
+def test_the_minimal_example_has_two_wings(minimal):
+    wings = [row[0] for row in minimal["bodies"]["data"] if row[2] is not None]
+    assert wings == ["wing_left", "wing_right"]
 
 
 def test_a_point_on_a_wing_names_that_wing_once(structure):

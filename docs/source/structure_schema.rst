@@ -162,8 +162,8 @@ of a log rather than in this document.
 Examples
 --------
 
-Two of the three files in ``examples/structure`` are the same kite — the TU Delft V3,
-a bridled soft wing — written from the two models `V3Kite.jl
+``examples/structure`` holds two documents of the same kite — the TU Delft V3, a
+bridled soft wing — written from the two models `V3Kite.jl
 <https://github.com/OpenSourceAWE/V3Kite.jl>`_ flies it with. They are generated
 rather than typed, so their numbers are a system that has been flown rather than an
 illustration of the format:
@@ -173,32 +173,50 @@ illustration of the format:
    with one body for the wing itself. No joints — the lattice *is* the structure.
 
 ``v3_beam_structure.yml``
-   The Timoshenko-beam wing: the leading-edge tube is 22 rigid bodies linked by 21
-   beam joints, and the bridle below it is 87 tethers over 220 points. The same ten
+   The beam wing: 22 rigid bodies, twelve down the leading-edge tube and ten down the
+   trailing edge, chained by eleven ``le_beam_*`` joints and tied front to back by ten
+   ``strut_beam_*``, with a twenty-third body carrying the aero. Under them a bridle
+   of 87 tethers, in a document of 220 points over 366 segments. The same ten
    stations, the same single winch.
 
-Between them they fill every block but ``elastic_joints``, which is why
-``minimal_structure.yml`` stays: it is hand-written and illustrative, and it is the
-only file here holding an elastic joint. Its header says so.
+Beside them ``minimal_structure.yml`` stays for ``elastic_joints``, the one block
+neither generated document fills.
 
-The two generated files carry in ``metadata.note`` the V3Kite.jl and
-SymbolicAWEModels.jl commits that wrote them, because a committed file nobody can
-regenerate drifts from the system it claims to describe on the first schema change.
-To write them again, in a Julia environment with both packages:
+Both carry their source geometry as it stands. V3Kite's is index-keyed, so a
+component it does not name carries its row number instead: every point, segment,
+body, tether and winch of ``v3_psm_structure.yml`` is called ``"1"`` upwards, as is
+the beam file's wing body. A name need only be non-empty and unique within its block,
+so the documents conform — but their by-name references read as indices. The beam
+wing's trailing edge likewise ties its centre element twice, ``te_5`` and ``te_5_2``
+over the same two points, which is `V3Kite.jl#64
+<https://github.com/OpenSourceAWE/V3Kite.jl/issues/64>`_ rather than this schema's
+doing.
+
+Each carries in ``metadata.note`` the V3Kite.jl and SymbolicAWEModels.jl commits that
+wrote it. To write them again, in a Julia environment with both packages:
 
 .. code-block:: julia
 
    using V3Kite, SymbolicAWEModels
-   set_data_path(v3_data_path())
-   for project in ("system_psm.yaml", "system_beam.yaml")
-       kite_set = load_kite(project)
-       _, sys = create_v3_model(project; kite_set)
+
+   data_path = v3_data_path()
+   set_data_path(data_path)
+   for (project, document) in ("system_psm.yaml" => "v3_psm_structure.yml",
+                               "system_beam.yaml" => "v3_beam_structure.yml")
+       kite_set = load_kite(project; data_path)
+       _, sys = create_v3_model(project; data_path, kite_set)
        apply_kite_material!(sys, kite_set)
-       save_structure_document("<name>_structure.yml", sys; name, description, note)
+       save_structure_document(document, sys)
    end
 
+That writes the tables. The three ``metadata`` strings are keyword arguments of
+``save_structure_document`` — ``name``, ``description`` and ``note`` — so carry the
+committed file's over, with ``note`` naming the pair of commits you regenerated
+against.
+
 The beam project reads an aero geometry that V3Kite generates rather than tracks, so
-run its ``examples/v3beam_aero_geometry.jl`` into the same data directory first.
+run its ``examples/v3beam_aero_geometry.jl`` into ``data_path`` first, which has to be
+a writable copy of ``v3_data_path()`` wherever the depot is read-only.
 
 A particle wing is a ``KINEMATIC`` body whose frame is fitted to reference points the
 schema has no column for, so ``v3_psm_structure.yml`` is a conforming document that
