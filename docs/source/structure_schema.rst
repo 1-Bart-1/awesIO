@@ -76,11 +76,9 @@ That is why a tube gives its ``diameter`` and ``pressure`` rather than its ``EA`
 tube deforms, so a file that states them has already committed to one solver's
 linearisation.
 
-A tool carries the rest of its own data beside the core as extra columns and as extra
-top-level blocks of any shape — SAM's ``wings``, ``transforms`` and ``groups``, and
-its choice of model wherever it has one. ``metadata`` and a table's own keys stay
-closed. **A reader ignores every column and block it does not know.** A later minor
-version may claim any such name for the schema, after which the tool renames its own.
+Everything else rides beside the core, as extra columns and as extra top-level blocks
+of any shape — SAM's ``wings``, ``transforms`` and ``groups``, and its choice of model
+wherever it has one. ``metadata`` and a table's own keys stay closed.
 
 Stations are not aerodynamic sections
 -------------------------------------
@@ -102,8 +100,9 @@ A rigid body has a position and a frame: ``pos_CAD`` is its origin, which is its
 centre of mass, and ``Q_KA_to_CAD`` the rotation from its own KA frame into CAD.
 ``mass`` and ``inertia_principal`` are taken about that origin and **already include
 the points fixed to the body**, so a reader takes the body row as it stands rather
-than deriving it from those points or adding them to it again. A tool that carries no
-rotational inertia writes zeros.
+than deriving it from those points or adding them to it again. Those points' masses
+are a part of the body's total, not an addition to it, and what they do not account
+for sits at the origin. A tool that carries no rotational inertia writes zeros.
 
 A point carries its own ``mass``, not counting the segments attached to it, and the
 ``drag_area`` its ``drag_coefficient`` refers to. ``body`` is the rigid body a
@@ -162,8 +161,11 @@ rotation reads ``Q_<from>_to_<to>``:
    The world frame: east, north, up.
 
 ``_KA``
-   The owning body's kite-aero frame: x from leading to trailing edge, y from the left
-   to the right tip, z up.
+   The owning body's own frame, the axes its ``inertia_principal`` is stated about. A
+   body with wing geometry orients it as KiteUtils.jl does: x from leading to trailing
+   edge, y from the left to the right tip, z up. A control unit or a single tube has no
+   leading edge, so its writer orients that frame as it likes and ``Q_KA_to_CAD`` is
+   where the file says which orientation it chose.
 
 ``pos_CAD`` is **design** geometry. Never draw it as if it were a world position: the
 position of a point in the ENU world frame depends on elevation, azimuth, heading and
@@ -190,3 +192,9 @@ three-segment tether, a control unit on the bridle, and one wing whose left and 
 leading-edge tubes are bodies, joined to each other and strutted back to the wing. It
 is illustrative rather than a physical system; a worked kite follows once a writer
 emits conforming files.
+
+Schema Structure
+----------------
+
+.. jsonschema:: ../../src/awesio/schemas/structure_schema.yml
+   :auto_reference:

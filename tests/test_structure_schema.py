@@ -61,6 +61,30 @@ def test_body_frames_are_unit_quaternions(structure):
         assert math.isclose(math.hypot(*frame), 1.0, abs_tol=1e-12), name
 
 
+def ka_axes_in_cad(frame):
+    """The KA x and y axes written in CAD: the first two columns of `Q_KA_to_CAD`."""
+    w, x, y, z = frame
+    return ([1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)],
+            [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)])
+
+
+def direction(start, end):
+    """Unit vector from `start` to `end`."""
+    span = [end_i - start_i for start_i, end_i in zip(start, end)]
+    return [component / math.hypot(*span) for component in span]
+
+
+def test_the_wing_frame_follows_the_wings_own_edges(structure):
+    """On a wing, KA x runs leading to trailing edge and KA y from left tip to right."""
+    pos = {row[0]: row[3] for row in structure["points"]["data"]}
+    frame = next(row[3] for row in structure["bodies"]["data"] if row[0] == "wing")
+    chord_axis, span_axis = ka_axes_in_cad(frame)
+    for axis, (start, end) in ((chord_axis, ("le_left", "te_left")),
+                               (span_axis, ("le_left", "le_right"))):
+        for got, want in zip(axis, direction(pos[start], pos[end])):
+            assert math.isclose(got, want, abs_tol=1e-9)
+
+
 def test_a_body_includes_the_mass_of_the_points_fixed_to_it(structure):
     """A reader must not add a BODY_STATIC point's `mass` to its body's again."""
     for body, _, _, _, body_mass, *_ in structure["bodies"]["data"]:
@@ -120,7 +144,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["stations"]["data"][0].__setitem__(2, "le_left")),
         ("a three-component body frame",
          lambda d: d["bodies"]["data"][0].__setitem__(3, [1.0, 0.0, 0.0])),
-        ("a tube linking a point instead of a body",
+        ("a tube naming a null body",
          lambda d: d["tubes"]["data"][0][1].__setitem__(1, None)),
         ("a tube joining three bodies",
          lambda d: d["tubes"]["data"][0][1].append("kcu")),

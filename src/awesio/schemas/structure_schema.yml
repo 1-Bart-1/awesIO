@@ -21,16 +21,18 @@ description: >
   an empty one.
 
   What a block requires is the core: what a viewer and every solver need, and
-  nothing a single tool needs. A tool carries the rest of its own data as extra
-  columns and as extra top-level blocks of any shape — its choice of model, its
-  numerical settings, its aerodynamic grouping. A reader ignores every column
-  and block it does not know, and a later minor version may claim any such name
-  for the schema, after which the tool renames its own.
+  nothing a single tool needs. A tool's own data rides beside it, as extra
+  columns and as extra top-level blocks that a reader ignores where it does not
+  know them; a later minor version may claim such a name for the schema, and
+  the tool renames its own.
 
   A column's suffix names the frame of its vectors: `_CAD` the CAD design frame,
-  `_ENU` the world, `_KA` the owning body's KA frame as KiteUtils.jl defines it
-  (x from leading to trailing edge, y from the left to the right tip, z up). A
-  rotation reads `Q_<from>_to_<to>`.
+  `_ENU` the world, `_KA` the owning body's own frame, the axes its
+  `inertia_principal` is stated about. A body with wing geometry orients that
+  frame as KiteUtils.jl does — x from leading to trailing edge, y from the left
+  to the right tip, z up — and one without a leading edge orients it as its
+  writer likes, which is what `Q_KA_to_CAD` records. A rotation reads
+  `Q_<from>_to_<to>`.
 
   Live state — positions, velocities, forces, twist angles, reel-out — is not
   structure and is not described here. Nor is the placement of CAD geometry into
