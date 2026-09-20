@@ -127,7 +127,8 @@ The ``metadata`` block carries two fields that are easy to confuse:
 ``connectivity_sha`` guards the pairing of a structure with a state log. Its preimage
 is ASCII and built in document order: the point count, a semicolon, then each
 segment's two endpoints as **one-based** row numbers into the points block, comma
-separated and semicolon terminated. The example file reads ``8;1,2;2,3;3,4;4,5;4,7;``.
+separated and semicolon terminated. ``minimal_structure.yml`` reads
+``8;1,2;2,3;3,4;4,5;4,7;``.
 The one-based convention is stated because a zero-based implementation would disagree
 with every file ever written and see them all as mismatches.
 
@@ -158,10 +159,48 @@ Live state: positions, velocities, forces, twist angles, reel-out lengths. A str
 is written once; state is written every step, which is why it belongs in the columns
 of a log rather than in this document.
 
-Example
--------
+Examples
+--------
 
-``examples/structure/minimal_structure.yml`` exercises every block: a ground anchor, a
-three-segment tether, a control unit on the bridle, and two wing bodies joined to it.
-It is illustrative rather than a physical system; a worked kite follows once a writer
-emits conforming files.
+Two of the three files in ``examples/structure`` are the same kite — the TU Delft V3,
+a bridled soft wing — written from the two models `V3Kite.jl
+<https://github.com/OpenSourceAWE/V3Kite.jl>`_ flies it with. They are generated
+rather than typed, so their numbers are a system that has been flown rather than an
+illustration of the format:
+
+``v3_psm_structure.yml``
+   The particle lattice: 44 points, 95 segments and 6 pulleys carry the wing's shape,
+   with one body for the wing itself. No joints — the lattice *is* the structure.
+
+``v3_beam_structure.yml``
+   The Timoshenko-beam wing: the leading-edge tube is 22 rigid bodies linked by 21
+   beam joints, and the bridle below it is 87 tethers over 220 points. The same ten
+   stations, the same single winch.
+
+Between them they fill every block but ``elastic_joints``, which is why
+``minimal_structure.yml`` stays: it is hand-written and illustrative, and it is the
+only file here holding an elastic joint. Its header says so.
+
+The two generated files carry in ``metadata.note`` the V3Kite.jl and
+SymbolicAWEModels.jl commits that wrote them, because a committed file nobody can
+regenerate drifts from the system it claims to describe on the first schema change.
+To write them again, in a Julia environment with both packages:
+
+.. code-block:: julia
+
+   using V3Kite, SymbolicAWEModels
+   set_data_path(v3_data_path())
+   for project in ("system_psm.yaml", "system_beam.yaml")
+       kite_set = load_kite(project)
+       _, sys = create_v3_model(project; kite_set)
+       apply_kite_material!(sys, kite_set)
+       save_structure_document("<name>_structure.yml", sys; name, description, note)
+   end
+
+The beam project reads an aero geometry that V3Kite generates rather than tracks, so
+run its ``examples/v3beam_aero_geometry.jl`` into the same data directory first.
+
+A particle wing is a ``KINEMATIC`` body whose frame is fitted to reference points the
+schema has no column for, so ``v3_psm_structure.yml`` is a conforming document that
+SymbolicAWEModels does not yet read back. Writing and reading are not the same
+guarantee, and only the beam file round-trips today.

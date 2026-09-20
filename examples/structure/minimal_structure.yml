@@ -1,11 +1,10 @@
-# A file exercising every block of structure_schema.yml: a ground anchor, a
-# three-segment tether, a control unit on the bridle, and two wing bodies
-# joined to it. It is illustrative, not a physical system; a worked kite
-# follows once a writer emits conforming files.
+# Kept for elastic_joints, the one block the two V3 kite documents beside it
+# leave empty. It exercises every other block too — a ground anchor through two
+# wing bodies — but its numbers are illustrative, not a physical system.
 metadata:
   name: minimal
   description: Minimal conforming resolved structure
-  note: Illustrative only — the numbers are not a real system.
+  note: Hand-written. Illustrative only — the numbers are not a real system.
   awesIO_version: 0.1.0
   schema: structure_schema.yml
   n_points: 8

@@ -23,10 +23,11 @@ Each release includes the following sections when applicable:
 Added
 -----
 
-- Initial schema set for system, power curves, wind resource, and operational
-  constraints
+- Initial schema set for system, structure, power curves, wind resource, and
+  operational constraints
 - Validator with schema auto-detection from ``metadata.schema``
-- Example YAML files for each schema
+- Example YAML files for each schema, the two structure examples generated from
+  V3Kite.jl's particle-lattice and Timoshenko-beam models of the TU Delft V3 kite
 - Sphinx documentation with schema reference pages
 
 Changed

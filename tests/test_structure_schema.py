@@ -1,4 +1,4 @@
-"""Conformance tests for structure_schema.yml and its worked example."""
+"""Conformance tests for structure_schema.yml and the examples it is written for."""
 
 import copy
 import hashlib
@@ -10,12 +10,20 @@ import pytest
 from awesio.validator import validate
 from awesio.yaml import load_yaml
 
-EXAMPLE = Path(__file__).parent.parent / "examples/structure/minimal_structure.yml"
+EXAMPLE_DIR = Path(__file__).parent.parent / "examples/structure"
+EXAMPLES = sorted(EXAMPLE_DIR.glob("*.yml"))
+
+
+@pytest.fixture(params=EXAMPLES, ids=lambda path: path.stem)
+def structure(request):
+    """Every committed example in turn, so a new one is covered by being committed."""
+    return load_yaml(request.param)
 
 
 @pytest.fixture
-def structure():
-    return load_yaml(EXAMPLE)
+def minimal():
+    """The illustrative file, the only one holding every block at once."""
+    return load_yaml(EXAMPLE_DIR / "minimal_structure.yml")
 
 
 def assert_valid(data):
@@ -34,16 +42,22 @@ def test_example_conforms(structure):
     assert_valid(structure)
 
 
-def test_connectivity_sha_matches_its_documented_preimage(structure):
+def connectivity_preimage(structure):
     """One-based row numbers, so zero-based readers do not disagree with the writer."""
-    names = [row[0] for row in structure["points"]["data"]]
-    preimage = f"{len(names)};" + "".join(
-        f"{names.index(a) + 1},{names.index(b) + 1};"
+    row_number = {row[0]: i + 1 for i, row in enumerate(structure["points"]["data"])}
+    return f"{len(row_number)};" + "".join(
+        f"{row_number[a]},{row_number[b]};"
         for _, (a, b), *_ in structure["segments"]["data"]
     )
-    assert preimage == "8;1,2;2,3;3,4;4,5;4,7;"
-    digest = hashlib.sha256(preimage.encode()).hexdigest()
+
+
+def test_connectivity_sha_hashes_the_preimage(structure):
+    digest = hashlib.sha256(connectivity_preimage(structure).encode()).hexdigest()
     assert digest == structure["metadata"]["connectivity_sha"]
+
+
+def test_the_documented_preimage_is_the_minimal_example(minimal):
+    assert connectivity_preimage(minimal) == "8;1,2;2,3;3,4;4,5;4,7;"
 
 
 def test_n_points_agrees_with_the_points_block(structure):
@@ -53,7 +67,7 @@ def test_n_points_agrees_with_the_points_block(structure):
 def test_wings_are_the_bodies_carrying_aero(structure):
     """There is no wings block; a wing is a body whose `aero` is not null."""
     wings = [row[0] for row in structure["bodies"]["data"] if row[2] is not None]
-    assert wings == ["wing_left", "wing_right"]
+    assert wings, "every example describes a system that flies"
 
 
 def test_a_point_on_a_wing_names_that_wing_once(structure):
@@ -64,20 +78,23 @@ def test_a_point_on_a_wing_names_that_wing_once(structure):
 
 
 def test_every_reference_resolves_to_a_named_row(structure):
+    def rows(block):
+        return structure.get(block, {"data": []})["data"]
+
     def names(block):
-        return {row[0] for row in structure.get(block, {"data": []})["data"]}
+        return {row[0] for row in rows(block)}
 
     points, segments, bodies = names("points"), names("segments"), names("bodies")
-    for _, endpoints, *_ in structure["segments"]["data"]:
+    for _, endpoints, *_ in rows("segments"):
         assert set(endpoints) <= points
-    for _, pair, *_ in structure["pulleys"]["data"]:
+    for _, pair, *_ in rows("pulleys"):
         assert set(pair) <= segments
-    for _, _, members, *_ in structure["stations"]["data"]:
+    for _, _, members, *_ in rows("stations"):
         assert set(members) <= points
-    for _, start, end, members in structure["tethers"]["data"]:
+    for _, start, end, members in rows("tethers"):
         assert {start, end} <= points and set(members) <= segments
     for block in ("elastic_joints", "timoshenko_joints"):
-        for _, pair, *_ in structure[block]["data"]:
+        for _, pair, *_ in rows(block):
             assert set(pair) <= bodies
 
 
@@ -140,8 +157,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["segments"].update(units=["-"])),
     ],
 )
-def test_malformed_structures_are_rejected(structure, label, mutate):
-    broken = copy.deepcopy(structure)
+def test_malformed_structures_are_rejected(minimal, label, mutate):
+    broken = copy.deepcopy(minimal)
     mutate(broken)
     assert_invalid(broken)
 
@@ -151,7 +168,7 @@ def test_optional_blocks_may_be_absent(structure):
     sparse = copy.deepcopy(structure)
     for block in ("stations", "pulleys", "tethers", "winches",
                   "bodies", "elastic_joints", "timoshenko_joints"):
-        sparse.pop(block)
+        sparse.pop(block, None)
     for row in sparse["points"]["data"]:
         row[2] = row[3] = None
     assert_valid(sparse)
