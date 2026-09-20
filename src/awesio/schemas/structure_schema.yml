@@ -14,17 +14,12 @@ description: >
   free-form under its wing_sections, bridle_nodes, bridle_lines and
   bridle_connections blocks.
 
-  Every block is a headers/data table and every reference is by name. A block
-  may carry columns beyond the ones required here; a reader addresses columns by
-  header, never by position, so a later minor version may append a column
-  without breaking an older reader. An absent optional block means the same as
-  an empty one.
-
-  What a block requires is the core: what a viewer and every solver need, and
-  nothing a single tool needs. A tool's own data rides beside it, as extra
-  columns and as extra top-level blocks that a reader ignores where it does not
-  know them; a later minor version may claim such a name for the schema, and
-  the tool renames its own.
+  Every block is a headers/data table and every reference is by name, and what a
+  block requires is the core: what a viewer and every solver need, and nothing a
+  single tool needs. Columns and top-level blocks beyond those carry a tool's
+  own data. A reader addresses columns by header, never by position, and ignores
+  what it does not know, so a later minor version may append a column or claim
+  such a name. An absent optional block means the same as an empty one.
 
   A column's suffix names the frame of its vectors: `_CAD` the CAD design frame,
   `_ENU` the world, `_KA` the owning body's own frame, the axes its
@@ -288,12 +283,12 @@ properties:
 
   tubes:
     description: >
-      Inflated beam elements between two bodies. A tube is straight and one
-      `diameter` [m] holds for the whole element, so a curved or tapered tube is
-      a chain of them and its rest length follows from the two body positions.
-      `pressure` [Pa] is the inflation pressure and `law` names the stiffness
-      law a reader derives the element's rigidities from, nonlinearly or
-      linearised about the undeformed tube as it chooses.
+      Inflated beam elements between two bodies, whose positions fix the
+      element's ends and so its rest length. One `diameter` [m] holds for the
+      whole element, and how it curves between those ends belongs to the
+      element: only a shape its `law` cannot hold, or a taper, is a chain of
+      tubes. `pressure` [Pa] is the inflation pressure and `law` names the
+      stiffness law a reader derives the element's rigidities from.
     allOf:
       - $ref: "#/definitions/table"
       - properties:

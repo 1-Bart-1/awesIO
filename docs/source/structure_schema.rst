@@ -51,13 +51,9 @@ What an element connects is one column holding a two-element tuple — a segment
 ``points``, a pulley's ``segments``, a tube's ``bodies`` — so the schema fixes that
 there are exactly two.
 
-A block may carry columns beyond the ones the schema requires. **A reader addresses
-columns by header, never by position** — that is what lets a later minor version
-append a column without breaking an older reader. Every header is a string and every
-row is exactly as long as its headers; the ``table`` definition states the latter as
-``rowsMatchHeaders``, a keyword ``awesio.validator`` enforces and other draft-07
-validators skip. An absent optional block means the same as an empty one; only
-``metadata``, ``points`` and ``segments`` are required.
+Every header is a string and every row is exactly as long as its headers, which the
+``table`` definition states as ``rowsMatchHeaders`` — a keyword ``awesio.validator``
+enforces and other draft-07 validators skip.
 
 YAML and JSON are two encodings of one model. JSON is the machine encoding, and it
 travels in the table-level metadata of an Arrow state log under the key ``topology``,
@@ -66,19 +62,11 @@ which is what makes a log self-describing: plotting it needs no sidecar file.
 The core, and what a tool carries beside it
 -------------------------------------------
 
-**What the schema requires is what a viewer and every solver need, and nothing that
-only one tool needs.** A column earns its place in the core by having a second reader
-that cannot do without it; the test is a reader outside the tool the column came
-from, not whether the quantity is respectable.
-
-That is why a tube gives its ``diameter`` and ``pressure`` rather than its ``EA``,
-``GA``, ``GJ``, ``EIy`` and ``EIz``: a finite-element reader re-derives those as the
-tube deforms, so a file that states them has already committed to one solver's
-linearisation.
-
-Everything else rides beside the core, as extra columns and as extra top-level blocks
-of any shape — SAM's ``wings``, ``transforms`` and ``groups``, and its choice of model
-wherever it has one. ``metadata`` and a table's own keys stay closed.
+A column earns its place in the core by having a reader outside the tool it came
+from; that test, and not whether the quantity is respectable, is what keeps one
+solver's settings out of every other tool's files. SAM's own ``wings``,
+``transforms`` and ``groups`` ride beside the core, while ``metadata`` and a table's
+own keys stay closed.
 
 Stations are not aerodynamic sections
 -------------------------------------
@@ -108,21 +96,15 @@ A point carries its own ``mass``, not counting the segments attached to it, and 
 ``drag_area`` its ``drag_coefficient`` refers to. ``body`` is the rigid body a
 ``BODY_STATIC`` point is fixed to, and is null for a point that belongs to none.
 
-**A tube joins two bodies**, named in its ``bodies`` column and never as points. It is
-straight and one ``diameter`` holds for the whole element, so a curved or tapered tube
-is a chain of them and its rest length follows from where its two bodies sit. What it
-carries besides its geometry is ``pressure`` and ``law``, the name of the stiffness
-law a reader derives the element's rigidities from — nonlinearly as the tube deforms,
-or linearised about the undeformed tube, as that reader chooses. How a law is
-parameterised is not yet part of this schema, so a file naming one is portable only
-between readers that know the name. A segment's ``unit_stiffness`` takes the same
-freedom: a number is the linear value, a string names a law.
+**A tube joins two bodies**, named in its ``bodies`` column and never as points.
+Their positions fix its ends and so its rest length, and one ``diameter`` holds for
+the whole element. How it curves between those ends belongs to the element: a
+Timoshenko beam carries curvature of its own, and only a shape its ``law`` cannot
+hold — or a taper — needs a chain of tubes.
 
-One table serves a finite-element beam element and a six-degree-of-freedom elastic
-link alike: they differ in how a solver assembles them, not in what a document has to
-say about the tube. The discretisation is carried by how many bodies a writer puts
-along it — one tube where a beam model has one element, six where a finite-element
-mesh has six, both describing the same kite.
+How a law is parameterised is not yet part of this schema, so a file naming one is
+portable only between readers that know the name. A segment's ``unit_stiffness`` takes
+the same freedom: a number is the linear value, a string names a law.
 
 Versioning
 ----------
@@ -139,14 +121,9 @@ The ``metadata`` block carries two fields that are easy to confuse:
    change is caught at load rather than silently misread.
 
 ``connectivity_sha`` guards the pairing of a structure with a state log. Its preimage
-is ASCII and built in document order, in two sections: the point count, then each
-segment's two endpoints as **one-based** row numbers into the points block; then the
-body count, then each tube's two bodies as one-based row numbers into the bodies
-block. Numbers within a pair are comma separated and every field is semicolon
-terminated, so a lone number always opens a section. The example file reads
-``8;1,2;2,3;3,4;4,5;4,7;4;3,4;3,2;4,2;``. The one-based convention is stated because a
-zero-based implementation would disagree with every file ever written and see them all
-as mismatches.
+is spelled out on ``metadata.connectivity_sha`` in the schema below; the row numbers
+in it are **one-based**, so that a zero-based reader does not see every file as a
+mismatch.
 
 Frames
 ------
