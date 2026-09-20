@@ -87,9 +87,10 @@ properties:
   # --------------------------------------------------------------------------
   points:
     description: >
-      Mass points. `body` names the rigid body a BODY_STATIC point is fixed to.
-      `wing` names the wing a point belongs to where `body` does not already
-      name it, and is null otherwise, so a point on a wing names that wing once.
+      Mass points. `body` names the rigid body a BODY_STATIC point is fixed to,
+      and that body's row names the wing it is part of, so `wing` is null
+      wherever `body` is given. `wing` is for a point with no body: a free node
+      of a wing meshed as particles.
       `mass` [kg] is the point's own mass, without its segments' share; a body's
       mass properties already include the points fixed to it. `drag_area` [m²]
       is the cross-sectional area `drag_coefficient` [-] refers to.

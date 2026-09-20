@@ -75,8 +75,8 @@ a lifting surface by pairing adjacent station rows will draw the wrong shape. St
 rows carry no spanwise ordering guarantee and none should be assumed.
 
 A station names the wing whose twist it carries in its ``wing`` column. That is stated
-rather than left to be inferred from the station's points, which name their wing through
-``body`` or ``wing`` and need not all be nodes of it.
+rather than left to be inferred from the station's points, which reach their wing
+through ``body`` or ``wing`` and need not all be nodes of it.
 
 Bodies, wings and joints
 ------------------------
@@ -88,10 +88,11 @@ sets of the same objects fall out of step. A body that is part of a wing — a
 leading-edge tube of a beam-modelled one — names it in ``wing``, which a wing's own
 row leaves null.
 
-For the same reason a point names its wing once. ``body`` is the rigid body a
-``BODY_STATIC`` point is fixed to; ``wing`` is the wing a point belongs to where
-``body`` does not already name it — a free node of a wing, or a point on a non-wing
-body that moves with one — and null otherwise.
+A point on a wing does not name it again. ``body`` is the rigid body a
+``BODY_STATIC`` point is fixed to, and that body's row already says which wing the
+body is part of, so ``wing`` stays null wherever ``body`` is given. ``wing`` is for a
+point that has no body — a free node of a wing meshed as particles rather than as
+rigid bodies.
 
 A point carries its own ``mass``, not counting the segments attached to it, and the
 ``drag_area`` its ``drag_coefficient`` refers to. A body's ``mass``,

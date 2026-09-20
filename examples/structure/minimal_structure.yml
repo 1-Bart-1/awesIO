@@ -19,9 +19,9 @@ points:
     - [tether_1, DYNAMIC, null, null, [0.0, 0.0, 10.0], 0.0, 0.0, 0.0]
     - [tether_2, DYNAMIC, null, null, [0.0, 0.0, 20.0], 0.0, 0.0, 0.0]
     - [kcu_node, BODY_STATIC, kcu, null, [0.0, 0.0, 30.0], 8.4, 0.1, 0.47]
-    - [le_left, BODY_STATIC, le_tube_left, wing, [0.0, -2.0, 32.0], 0.8, 0.0, 0.0]
+    - [le_left, BODY_STATIC, le_tube_left, null, [0.0, -2.0, 32.0], 0.8, 0.0, 0.0]
     - [te_left, BODY_STATIC, wing, null, [-0.8, -2.0, 31.8], 0.4, 0.0, 0.0]
-    - [le_right, BODY_STATIC, le_tube_right, wing, [0.0, 2.0, 32.0], 0.8, 0.0, 0.0]
+    - [le_right, BODY_STATIC, le_tube_right, null, [0.0, 2.0, 32.0], 0.8, 0.0, 0.0]
     - [te_right, BODY_STATIC, wing, null, [-0.8, 2.0, 31.8], 0.4, 0.0, 0.0]
 
 segments:

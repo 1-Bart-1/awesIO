@@ -59,11 +59,10 @@ def test_wings_are_the_bodies_carrying_aero(structure):
     assert wing_names(structure) == {"wing"}
 
 
-def test_a_point_on_a_wing_names_that_wing_once(structure):
-    """`wing` is null where `body` already is the wing the point belongs to."""
-    wings = wing_names(structure)
+def test_a_point_fixed_to_a_body_leaves_its_wing_null(structure):
+    """The body's own row names the wing, so the point does not name it again."""
     for name, _, body, wing, *_ in structure["points"]["data"]:
-        assert not (body in wings and wing is not None), name
+        assert body is None or wing is None, name
 
 
 def test_a_body_includes_the_mass_of_the_points_fixed_to_it(structure):
