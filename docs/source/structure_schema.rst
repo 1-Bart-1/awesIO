@@ -84,7 +84,9 @@ Bodies, wings and joints
 Rigid bodies live in one ``bodies`` block. **A wing is a body that carries an
 aerodynamic model**, so the wings of a system are the rows whose ``aero`` is not
 null. There is no separate wings block, because two blocks describing overlapping
-sets of the same objects fall out of step.
+sets of the same objects fall out of step. A body that is part of a wing — a
+leading-edge tube of a beam-modelled one — names it in ``wing``, which a wing's own
+row leaves null.
 
 For the same reason a point names its wing once. ``body`` is the rigid body a
 ``BODY_STATIC`` point is fixed to; ``wing`` is the wing a point belongs to where
@@ -163,6 +165,7 @@ Example
 -------
 
 ``examples/structure/minimal_structure.yml`` exercises every block: a ground anchor, a
-three-segment tether, a control unit on the bridle, and two wing bodies joined to it.
+three-segment tether, a control unit on the bridle, and one wing whose left and right
+leading-edge tubes are bodies joined by a beam element.
 It is illustrative rather than a physical system; a worked kite follows once a writer
 emits conforming files.

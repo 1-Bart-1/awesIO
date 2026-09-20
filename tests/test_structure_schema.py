@@ -56,7 +56,7 @@ def test_n_points_agrees_with_the_points_block(structure):
 
 
 def test_wings_are_the_bodies_carrying_aero(structure):
-    assert wing_names(structure) == {"wing_left", "wing_right"}
+    assert wing_names(structure) == {"wing"}
 
 
 def test_a_point_on_a_wing_names_that_wing_once(structure):
@@ -80,6 +80,11 @@ def test_every_reference_resolves_to_a_named_row(structure):
 
     points, segments, bodies = names("points"), names("segments"), names("bodies")
     wings = wing_names(structure)
+    for name, _, body, wing, *_ in structure["points"]["data"]:
+        assert body is None or body in bodies, name
+        assert wing is None or wing in wings, name
+    for name, _, _, wing, *_ in structure["bodies"]["data"]:
+        assert wing is None or wing in wings, name
     for _, endpoints, *_ in structure["segments"]["data"]:
         assert set(endpoints) <= points
     for _, pair, *_ in structure["pulleys"]["data"]:

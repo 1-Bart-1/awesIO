@@ -260,7 +260,9 @@ properties:
     description: >
       Rigid bodies. A wing is a body that carries an aerodynamic model, so the
       wings of a system are the rows whose `aero` is not null; there is no
-      separate wings block to fall out of step with this one.
+      separate wings block to fall out of step with this one. `wing` names the
+      wing a body is part of, and is null both on a wing's own row and on a body
+      belonging to none.
     allOf:
       - $ref: "#/definitions/table"
       - properties:

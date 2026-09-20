@@ -1,7 +1,8 @@
 # A file exercising every block of structure_schema.yml: a ground anchor, a
-# three-segment tether, a control unit on the bridle, and two wing bodies
-# joined to it. It is illustrative, not a physical system; a worked kite
-# follows once a writer emits conforming files.
+# three-segment tether, a control unit on the bridle, and one wing whose left
+# and right leading-edge tubes are bodies joined by a beam element. It is
+# illustrative, not a physical system; a worked kite follows once a writer
+# emits conforming files.
 metadata:
   name: minimal
   description: Minimal conforming resolved structure
@@ -18,10 +19,10 @@ points:
     - [tether_1, DYNAMIC, null, null, [0.0, 0.0, 10.0], 0.0, 0.0, 0.0]
     - [tether_2, DYNAMIC, null, null, [0.0, 0.0, 20.0], 0.0, 0.0, 0.0]
     - [kcu_node, BODY_STATIC, kcu, null, [0.0, 0.0, 30.0], 8.4, 0.1, 0.47]
-    - [le_left, BODY_STATIC, wing_left, null, [0.0, -2.0, 32.0], 1.5, 0.0, 0.0]
-    - [te_left, BODY_STATIC, wing_left, null, [-0.8, -2.0, 31.8], 1.5, 0.0, 0.0]
-    - [le_right, BODY_STATIC, wing_right, null, [0.0, 2.0, 32.0], 1.5, 0.0, 0.0]
-    - [te_right, BODY_STATIC, wing_right, null, [-0.8, 2.0, 31.8], 1.5, 0.0, 0.0]
+    - [le_left, BODY_STATIC, le_tube_left, wing, [0.0, -2.0, 32.0], 0.8, 0.0, 0.0]
+    - [te_left, BODY_STATIC, wing, null, [-0.8, -2.0, 31.8], 0.4, 0.0, 0.0]
+    - [le_right, BODY_STATIC, le_tube_right, wing, [0.0, 2.0, 32.0], 0.8, 0.0, 0.0]
+    - [te_right, BODY_STATIC, wing, null, [-0.8, 2.0, 31.8], 0.4, 0.0, 0.0]
 
 segments:
   headers: [name, points, l0, diameter, density, unit_stiffness, unit_damping,
@@ -36,8 +37,8 @@ segments:
 stations:
   headers: [name, type, wing, points, stiffness, damping]
   data:
-    - [station_left, DYNAMIC, wing_left, [le_left, te_left], 120.0, 8.0]
-    - [station_right, DYNAMIC, wing_right, [le_right, te_right], 120.0, 8.0]
+    - [station_left, DYNAMIC, wing, [le_left, te_left], 120.0, 8.0]
+    - [station_right, DYNAMIC, wing, [le_right, te_right], 120.0, 8.0]
 
 pulleys:
   headers: [name, segments, type, efficiency]
@@ -57,20 +58,25 @@ bodies:
   headers: [name, type, aero, wing, mass, apparent_mass, inertia_principal,
             com_offset_KA, pos_cad]
   data:
-    - [kcu, DYNAMIC, null, null, 8.4, 0.0, [0.2, 0.2, 0.2], [0.0, 0.0, 0.0], [0.0, 0.0, 30.0]]
-    - [wing_left, DYNAMIC, VSM, null, 3.0, 0.6, [0.5, 1.2, 1.5], [-0.3, 0.0, 0.0], [0.0, -2.0, 32.0]]
-    - [wing_right, DYNAMIC, VSM, null, 3.0, 0.6, [0.5, 1.2, 1.5], [-0.3, 0.0, 0.0], [0.0, 2.0, 32.0]]
+    - [kcu, DYNAMIC, null, null, 8.4, 0.0, [0.2, 0.2, 0.2], [0.0, 0.0, 0.0],
+       [0.0, 0.0, 30.0]]
+    - [wing, DYNAMIC, VSM, null, 3.0, 0.6, [0.5, 1.2, 1.5], [-0.3, 0.0, 0.0],
+       [0.0, 0.0, 32.0]]
+    - [le_tube_left, DYNAMIC, null, wing, 1.6, 0.0, [0.05, 0.05, 0.05],
+       [0.0, 0.0, 0.0], [0.0, -2.0, 32.0]]
+    - [le_tube_right, DYNAMIC, null, wing, 1.6, 0.0, [0.05, 0.05, 0.05],
+       [0.0, 0.0, 0.0], [0.0, 2.0, 32.0]]
 
 elastic_joints:
   headers: [name, bodies, anchors_KA, stiffness_axial, stiffness_shear,
             stiffness_torsion, stiffness_bending, damping, radius]
   data:
-    - [kcu_to_left, [kcu, wing_left], [[0.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+    - [kcu_to_wing, [kcu, wing], [[0.0, 0.0, 0.0], [0.0, 0.0, -2.0]],
        120000.0, 40000.0, 900.0, 1500.0, 0.002, null]
 
 timoshenko_joints:
   headers: [name, bodies, anchors_KA, EA, GA, GJ, EIy, EIz, shear_coeff, damping,
             rest_length, radius]
   data:
-    - [le_tube, [wing_left, wing_right], [[0.0, 2.0, 0.0], [0.0, -2.0, 0.0]],
+    - [le_beam, [le_tube_left, le_tube_right], [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
        180000.0, 60000.0, 210.0, 340.0, 340.0, 0.888888888888889, 0.004, 4.0, 0.06]
