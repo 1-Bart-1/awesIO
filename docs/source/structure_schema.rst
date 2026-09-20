@@ -92,9 +92,9 @@ For the same reason a point names its wing once. ``body`` is the rigid body a
 body that moves with one — and null otherwise.
 
 A point carries its own ``mass``, not counting the segments attached to it, and the
-``drag_area`` its ``drag_coefficient`` refers to. **A body's ``mass``,
-``inertia_principal`` and ``com_offset_KA`` already include the points fixed to it**: a
-reader takes the body row as it stands, rather than deriving it from those points or
+``drag_area`` its ``drag_coefficient`` refers to. A body's ``mass``,
+``inertia_principal`` and ``com_offset_KA`` **already include the points fixed to it**:
+a reader takes the body row as it stands, rather than deriving it from those points or
 adding them to it again.
 
 Joints link two bodies by name, never points, and come in two blocks because their

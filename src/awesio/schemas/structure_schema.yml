@@ -206,9 +206,8 @@ properties:
   tethers:
     description: >
       Ordered runs of segments between two points. Material lives on the
-      segments; a tether is the grouping a winch reels. How far a tether is
-      reeled out is state and has no column here; the segments' `l0` is the
-      structure it is reeled from.
+      segments; a tether is the grouping a winch reels, and the length it is
+      reeled from is its segments' `l0`.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
