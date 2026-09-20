@@ -4,8 +4,8 @@ title: AWE System Structure Schema
 description: >
   Resolved structural definition of an AWE system: the points, the segments,
   stations, pulleys, tethers and winches built on them, the rigid bodies, and
-  the joints that link those bodies. Each component carries its own geometry
-  and material, so a file is a complete structural definition rather than a
+  the tubes between those bodies. Each component carries its own geometry and
+  material, so a file is a complete structural definition rather than a
   connectivity sketch.
 
   Fully resolved and expanded — no variable substitution, no segment counts left
@@ -20,14 +20,17 @@ description: >
   without breaking an older reader. An absent optional block means the same as
   an empty one.
 
-  A tool may carry data of its own as extra columns and as extra top-level
-  blocks of any shape. A reader ignores every column and block it does not know.
-  A later minor version may claim any such name for the schema, after which the
-  tool renames its own.
+  What a block requires is the core: what a viewer and every solver need, and
+  nothing a single tool needs. A tool carries the rest of its own data as extra
+  columns and as extra top-level blocks of any shape — its choice of model, its
+  numerical settings, its aerodynamic grouping. A reader ignores every column
+  and block it does not know, and a later minor version may claim any such name
+  for the schema, after which the tool renames its own.
 
-  A column's suffix names the frame of its vectors: `_cad` the CAD design frame,
-  `_KA` the owning body's KA frame as KiteUtils.jl defines it (x from leading to
-  trailing edge, y from the left to the right tip, z up).
+  A column's suffix names the frame of its vectors: `_CAD` the CAD design frame,
+  `_ENU` the world, `_KA` the owning body's KA frame as KiteUtils.jl defines it
+  (x from leading to trailing edge, y from the left to the right tip, z up). A
+  rotation reads `Q_<from>_to_<to>`.
 
   Live state — positions, velocities, forces, twist angles, reel-out — is not
   structure and is not described here. Nor is the placement of CAD geometry into
@@ -77,12 +80,15 @@ properties:
           one structure is not silently replayed against another that indexes
           differently.
 
-          The preimage is ASCII and built in document order: the number of
-          points, a semicolon, then for each segment its two endpoints as
-          ONE-BASED row numbers into the points block, comma-separated, each
-          pair followed by a semicolon. The example in examples/structure reads
-          `8;1,2;2,3;3,4;4,5;4,7;`. Row numbers are one-based so that
-          implementations in zero-based languages agree with each other; a
+          The preimage is ASCII and built in document order, in two sections:
+          the number of points, then each segment's two endpoints as ONE-BASED
+          row numbers into the points block; then the number of bodies, then
+          each tube's two bodies as one-based row numbers into the bodies
+          block. The two numbers of a pair are comma-separated and every field
+          ends in a semicolon, so a lone number always opens a section. The
+          example in examples/structure reads
+          `8;1,2;2,3;3,4;4,5;4,7;4;3,4;3,2;4,2;`. Row numbers are one-based so
+          that implementations in zero-based languages agree with each other; a
           reader that gets this wrong sees every file as a mismatch.
         pattern: '^[0-9a-f]{64}$'
     additionalProperties: false
@@ -93,12 +99,10 @@ properties:
   points:
     description: >
       Mass points. `body` names the rigid body a BODY_STATIC point is fixed to,
-      and that body's row names the wing it is part of, so `wing` is null
-      wherever `body` is given. `wing` is for a point with no body: a free node
-      of a wing meshed as particles.
-      `mass` [kg] is the point's own mass, without its segments' share; a body's
-      mass properties already include the points fixed to it. `drag_area` [m²]
-      is the cross-sectional area `drag_coefficient` [-] refers to.
+      and is null for a point that belongs to no body. `mass` [kg] is the
+      point's own mass, without its segments' share; a body's mass properties
+      already include the points fixed to it. `drag_area` [m²] is the
+      cross-sectional area `drag_coefficient` [-] refers to.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -107,12 +111,11 @@ properties:
               - const: name
               - const: type
               - const: body
-              - const: wing
-              - const: pos_cad
+              - const: pos_CAD
               - const: mass
               - const: drag_area
               - const: drag_coefficient
-            minItems: 8
+            minItems: 7
           data:
             items:
               type: array
@@ -120,14 +123,16 @@ properties:
                 - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/dynamics_type"
                 - $ref: "#/definitions/optional_name"
-                - $ref: "#/definitions/optional_name"
                 - $ref: "#/definitions/vec3"
                 - $ref: "#/definitions/non_negative"
                 - $ref: "#/definitions/non_negative"
                 - $ref: "#/definitions/non_negative"
-              minItems: 8
+              minItems: 7
 
   segments:
+    description: >
+      Straight elastic elements between two points. `l0` [m] is the unstretched
+      length and `unit_stiffness` [N] the axial stiffness times that length.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -139,10 +144,7 @@ properties:
               - const: diameter
               - const: density
               - const: unit_stiffness
-              - const: unit_damping
-              - const: compression_frac
-              - const: compression_damping_frac
-            minItems: 9
+            minItems: 6
           data:
             items:
               type: array
@@ -153,17 +155,14 @@ properties:
                 - $ref: "#/definitions/length"
                 - $ref: "#/definitions/density"
                 - $ref: "#/definitions/rigidity"
-                - $ref: "#/definitions/non_negative"
-                - $ref: "#/definitions/fraction"
-                - $ref: "#/definitions/fraction"
-              minItems: 9
+              minItems: 6
 
   stations:
     description: >
       Groups of points sharing one twist degree of freedom. A station is a
       structural group, not an aerodynamic section: a wing is typically meshed
       into many more aerodynamic sections than it has stations, and the two must
-      not be conflated. `wing` names the wing whose twist the station carries.
+      not be conflated.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -171,22 +170,16 @@ properties:
             items:
               - const: name
               - const: type
-              - const: wing
               - const: points
-              - const: stiffness
-              - const: damping
-            minItems: 6
+            minItems: 3
           data:
             items:
               type: array
               items:
                 - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/dynamics_type"
-                - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/name_list"
-                - $ref: "#/definitions/non_negative"
-                - $ref: "#/definitions/non_negative"
-              minItems: 6
+              minItems: 3
 
   pulleys:
     allOf:
@@ -243,10 +236,9 @@ properties:
               - const: name
               - const: tethers
               - const: winch_point
-              - const: model
               - const: gear_ratio
               - const: drum_radius
-            minItems: 6
+            minItems: 5
           data:
             items:
               type: array
@@ -254,21 +246,20 @@ properties:
                 - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/name_list"
                 - $ref: "#/definitions/component_name"
-                - $ref: "#/definitions/model_name"
                 - $ref: "#/definitions/non_negative"
                 - $ref: "#/definitions/length"
-              minItems: 6
+              minItems: 5
 
   # --------------------------------------------------------------------------
-  # RIGID BODIES AND THE JOINTS BETWEEN THEM
+  # RIGID BODIES AND THE TUBES BETWEEN THEM
   # --------------------------------------------------------------------------
   bodies:
     description: >
-      Rigid bodies. A wing is a body that carries an aerodynamic model, so the
-      wings of a system are the rows whose `aero` is not null; there is no
-      separate wings block to fall out of step with this one. `wing` names the
-      wing a body is part of, and is null both on a wing's own row and on a body
-      belonging to none.
+      Rigid bodies. `pos_CAD` is the body's origin, which is its centre of mass,
+      and `Q_KA_to_CAD` the rotation from its KA frame into CAD. `mass` [kg] and
+      `inertia_principal` [kg·m²] are taken about that origin and already
+      include the points fixed to the body; a tool that carries no rotational
+      inertia writes zeros.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -276,33 +267,31 @@ properties:
             items:
               - const: name
               - const: type
-              - const: aero
-              - const: wing
+              - const: pos_CAD
+              - const: Q_KA_to_CAD
               - const: mass
-              - const: apparent_mass
               - const: inertia_principal
-              - const: com_offset_KA
-              - const: pos_cad
-            minItems: 9
+            minItems: 6
           data:
             items:
               type: array
               items:
                 - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/dynamics_type"
-                - $ref: "#/definitions/optional_model_name"
-                - $ref: "#/definitions/optional_name"
+                - $ref: "#/definitions/vec3"
+                - $ref: "#/definitions/quaternion"
                 - $ref: "#/definitions/non_negative"
-                - $ref: "#/definitions/non_negative"
                 - $ref: "#/definitions/vec3"
-                - $ref: "#/definitions/vec3"
-                - $ref: "#/definitions/vec3"
-              minItems: 9
+              minItems: 6
 
-  elastic_joints:
+  tubes:
     description: >
-      Six-degree-of-freedom elastic links between two bodies, each stiffness
-      resolved about one relative degree of freedom.
+      Inflated beam elements between two bodies. A tube is straight and one
+      `diameter` [m] holds for the whole element, so a curved or tapered tube is
+      a chain of them and its rest length follows from the two body positions.
+      `pressure` [Pa] is the inflation pressure and `law` names the stiffness
+      law a reader derives the element's rigidities from, nonlinearly or
+      linearised about the undeformed tube as it chooses.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -310,67 +299,20 @@ properties:
             items:
               - const: name
               - const: bodies
-              - const: anchors_KA
-              - const: stiffness_axial
-              - const: stiffness_shear
-              - const: stiffness_torsion
-              - const: stiffness_bending
-              - const: damping
-              - const: radius
-            minItems: 9
+              - const: diameter
+              - const: pressure
+              - const: law
+            minItems: 5
           data:
             items:
               type: array
               items:
                 - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/name_pair"
-                - $ref: "#/definitions/vec3_pair"
-                - $ref: "#/definitions/rigidity"
-                - $ref: "#/definitions/rigidity"
-                - $ref: "#/definitions/rigidity"
-                - $ref: "#/definitions/rigidity"
-                - $ref: "#/definitions/non_negative"
-                - $ref: "#/definitions/optional_length"
-              minItems: 9
-
-  timoshenko_joints:
-    description: >
-      Timoshenko beam elements between two bodies. A chain of them forms a beam.
-    allOf:
-      - $ref: "#/definitions/table"
-      - properties:
-          headers:
-            items:
-              - const: name
-              - const: bodies
-              - const: anchors_KA
-              - const: EA
-              - const: GA
-              - const: GJ
-              - const: EIy
-              - const: EIz
-              - const: shear_coeff
-              - const: damping
-              - const: rest_length
-              - const: radius
-            minItems: 12
-          data:
-            items:
-              type: array
-              items:
-                - $ref: "#/definitions/component_name"
-                - $ref: "#/definitions/name_pair"
-                - $ref: "#/definitions/vec3_pair"
-                - $ref: "#/definitions/rigidity"
-                - $ref: "#/definitions/rigidity"
-                - $ref: "#/definitions/rigidity"
-                - $ref: "#/definitions/rigidity"
-                - $ref: "#/definitions/rigidity"
-                - $ref: "#/definitions/fraction"
-                - $ref: "#/definitions/non_negative"
                 - $ref: "#/definitions/length"
-                - $ref: "#/definitions/optional_length"
-              minItems: 12
+                - $ref: "#/definitions/non_negative"
+                - $ref: "#/definitions/model_name"
+              minItems: 5
 
 additionalProperties: true
 
@@ -444,25 +386,19 @@ definitions:
     minItems: 3
     maxItems: 3
 
-  vec3_pair:
+  quaternion:
     description: >
-      One vector per component of the neighbouring name pair, in the same
-      order, each in that component's own frame.
+      A unit quaternion, scalar first — `[w, x, y, z]` — rotating a vector from
+      the frame its column names into the frame it names second.
     type: array
     items:
-      $ref: "#/definitions/vec3"
-    minItems: 2
-    maxItems: 2
+      type: number
+    minItems: 4
+    maxItems: 4
 
   length:
     type: number
     minimum: 0
-
-  optional_length:
-    description: A length [m], or null where the quantity does not apply.
-    oneOf:
-      - $ref: "#/definitions/length"
-      - type: "null"
 
   density:
     description: Material density [kg/m³].
@@ -496,12 +432,6 @@ definitions:
       than a component in this document.
     type: string
     minLength: 1
-
-  optional_model_name:
-    description: A model name, or null where the component carries no such model.
-    oneOf:
-      - $ref: "#/definitions/model_name"
-      - type: "null"
 
   dynamics_type:
     description: >
