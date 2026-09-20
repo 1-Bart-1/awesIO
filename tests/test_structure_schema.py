@@ -1,4 +1,4 @@
-"""Conformance tests for structure_schema.yml and its worked example."""
+"""Conformance tests for structure_schema.yml and the examples it is written for."""
 
 import copy
 import hashlib
@@ -11,12 +11,30 @@ import pytest
 from awesio.validator import validate
 from awesio.yaml import load_yaml
 
-EXAMPLE = Path(__file__).parent.parent / "examples/structure/minimal_structure.yml"
+EXAMPLE_DIR = Path(__file__).parent.parent / "examples/structure"
+EXAMPLES = sorted(EXAMPLE_DIR.glob("*.yml"))
+
+
+@pytest.fixture(params=EXAMPLES, ids=lambda path: path.stem)
+def structure(request):
+    """Every .yml in examples/structure, so the invariants below cover all of them."""
+    return load_yaml(request.param)
 
 
 @pytest.fixture
-def structure():
-    return load_yaml(EXAMPLE)
+def minimal():
+    """The authored example, whose own names the cases below address rows by."""
+    return load_yaml(EXAMPLE_DIR / "minimal_structure.yml")
+
+
+def rows(structure, block):
+    """An absent optional block means the same as an empty one."""
+    return structure.get(block, {"data": []})["data"]
+
+
+def a_point_on_a_body(structure):
+    """Most rows leave `body` null; breaking that column needs one that does not."""
+    return next(row for row in rows(structure, "points") if row[2] is not None)
 
 
 def assert_valid(data):
@@ -35,20 +53,30 @@ def test_example_conforms(structure):
     assert_valid(structure)
 
 
-def test_connectivity_sha_matches_its_documented_preimage(structure):
+def connectivity_preimage(structure):
     """One-based row numbers, so zero-based readers do not disagree with the writer."""
-    points = [row[0] for row in structure["points"]["data"]]
-    bodies = [row[0] for row in structure["bodies"]["data"]]
+    def section(named, paired):
+        row_number = {row[0]: i + 1 for i, row in enumerate(rows(structure, named))}
+        return f"{len(row_number)};" + "".join(
+            f"{row_number[a]},{row_number[b]};"
+            for _, (a, b), *_ in rows(structure, paired)
+        )
 
-    def pairs(block, names):
-        return "".join(f"{names.index(a) + 1},{names.index(b) + 1};"
-                       for _, (a, b), *_ in structure[block]["data"])
+    return section("points", "segments") + section("bodies", "tubes")
 
-    preimage = (f"{len(points)};" + pairs("segments", points)
-                + f"{len(bodies)};" + pairs("tubes", bodies))
-    assert preimage == "8;1,2;2,3;3,4;4,5;4,7;4;3,4;3,2;4,2;"
-    digest = hashlib.sha256(preimage.encode()).hexdigest()
+
+def test_connectivity_sha_hashes_the_preimage(structure):
+    digest = hashlib.sha256(connectivity_preimage(structure).encode()).hexdigest()
     assert digest == structure["metadata"]["connectivity_sha"]
+
+
+def test_the_documented_preimage_is_what_the_rule_produces():
+    """The line `metadata.connectivity_sha` quotes, so the two cannot drift apart."""
+    three_in_a_row = {"points": {"data": [["a"], ["b"], ["c"]]},
+                      "segments": {"data": [["s1", ("a", "b")], ["s2", ("b", "c")]]},
+                      "bodies": {"data": [["x"], ["y"]]},
+                      "tubes": {"data": [["t1", ("x", "y")]]}}
+    assert connectivity_preimage(three_in_a_row) == "3;1,2;2,3;2;1,2;"
 
 
 def test_n_points_agrees_with_the_points_block(structure):
@@ -57,7 +85,7 @@ def test_n_points_agrees_with_the_points_block(structure):
 
 def test_body_frames_are_unit_quaternions(structure):
     """Draft-07 can hold `Q_KA_to_CAD` to four numbers but not to unit length."""
-    for name, _, _, frame, *_ in structure["bodies"]["data"]:
+    for name, _, _, frame, *_ in rows(structure, "bodies"):
         assert math.isclose(math.hypot(*frame), 1.0, abs_tol=1e-12), name
 
 
@@ -74,10 +102,10 @@ def direction(start, end):
     return [component / math.hypot(*span) for component in span]
 
 
-def test_the_wing_frame_follows_the_wings_own_edges(structure):
+def test_the_wing_frame_follows_the_wings_own_edges(minimal):
     """On a wing, KA x runs leading to trailing edge and KA y from left tip to right."""
-    pos = {row[0]: row[3] for row in structure["points"]["data"]}
-    frame = next(row[3] for row in structure["bodies"]["data"] if row[0] == "wing")
+    pos = {row[0]: row[3] for row in minimal["points"]["data"]}
+    frame = next(row[3] for row in minimal["bodies"]["data"] if row[0] == "wing")
     chord_axis, span_axis = ka_axes_in_cad(frame)
     for axis, (start, end) in ((chord_axis, ("le_left", "te_left")),
                                (span_axis, ("le_left", "le_right"))):
@@ -87,7 +115,7 @@ def test_the_wing_frame_follows_the_wings_own_edges(structure):
 
 def test_a_body_includes_the_mass_of_the_points_fixed_to_it(structure):
     """A reader must not add a BODY_STATIC point's `mass` to its body's again."""
-    for body, _, _, _, body_mass, *_ in structure["bodies"]["data"]:
+    for body, _, _, _, body_mass, *_ in rows(structure, "bodies"):
         point_mass = sum(row[4] for row in structure["points"]["data"]
                          if row[2] == body)
         assert point_mass <= body_mass, body
@@ -95,20 +123,20 @@ def test_a_body_includes_the_mass_of_the_points_fixed_to_it(structure):
 
 def test_every_reference_resolves_to_a_named_row(structure):
     def names(block):
-        return {row[0] for row in structure.get(block, {"data": []})["data"]}
+        return {row[0] for row in rows(structure, block)}
 
     points, segments, bodies = names("points"), names("segments"), names("bodies")
-    for name, _, body, *_ in structure["points"]["data"]:
+    for name, _, body, *_ in rows(structure, "points"):
         assert body is None or body in bodies, name
-    for _, endpoints, *_ in structure["segments"]["data"]:
+    for _, endpoints, *_ in rows(structure, "segments"):
         assert set(endpoints) <= points
-    for _, pair, *_ in structure["pulleys"]["data"]:
+    for _, pair, *_ in rows(structure, "pulleys"):
         assert set(pair) <= segments
-    for _, _, members in structure["stations"]["data"]:
+    for _, _, members in rows(structure, "stations"):
         assert set(members) <= points
-    for _, start, end, members in structure["tethers"]["data"]:
+    for _, start, end, members in rows(structure, "tethers"):
         assert {start, end} <= points and set(members) <= segments
-    for _, pair, *_ in structure["tubes"]["data"]:
+    for _, pair, *_ in rows(structure, "tubes"):
         assert set(pair) <= bodies
 
 
@@ -116,9 +144,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
     "label, mutate",
     [
         ("reordered headers",
-         lambda d: d["points"].update(
-             headers=["type", "name", "body", "pos_CAD", "mass", "drag_area",
-                      "drag_coefficient"])),
+         lambda d: d["points"]["headers"].reverse()),
         ("points under the old CAD frame suffix",
          lambda d: d["points"]["headers"].__setitem__(3, "pos_cad")),
         ("unknown dynamics type",
@@ -126,7 +152,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("two-component pos_CAD",
          lambda d: d["points"]["data"][0].__setitem__(3, [0.0, 0.0])),
         ("a point's body given as an index",
-         lambda d: d["points"]["data"][4].__setitem__(2, 2)),
+         lambda d: a_point_on_a_body(d).__setitem__(2, 2)),
         ("a point with negative mass",
          lambda d: d["points"]["data"][3].__setitem__(4, -8.4)),
         ("a point row without its drag coefficient",
@@ -180,8 +206,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["segments"].update(units=["-"])),
     ],
 )
-def test_malformed_structures_are_rejected(structure, label, mutate):
-    broken = copy.deepcopy(structure)
+def test_malformed_structures_are_rejected(minimal, label, mutate):
+    broken = copy.deepcopy(minimal)
     mutate(broken)
     assert_invalid(broken)
 
@@ -190,7 +216,7 @@ def test_optional_blocks_may_be_absent(structure):
     """An absent optional block means the same as an empty one."""
     sparse = copy.deepcopy(structure)
     for block in ("stations", "pulleys", "tethers", "winches", "bodies", "tubes"):
-        sparse.pop(block)
+        sparse.pop(block, None)
     for row in sparse["points"]["data"]:
         row[2] = None
     assert_valid(sparse)

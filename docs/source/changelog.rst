@@ -23,8 +23,8 @@ Each release includes the following sections when applicable:
 Added
 -----
 
-- Initial schema set for system, power curves, wind resource, and operational
-  constraints
+- Initial schema set for system, structure, power curves, wind resource, and
+  operational constraints
 - Validator with schema auto-detection from ``metadata.schema``
 - Example YAML files for each schema
 - Sphinx documentation with schema reference pages

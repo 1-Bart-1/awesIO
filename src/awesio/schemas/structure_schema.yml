@@ -82,10 +82,10 @@ properties:
           row numbers into the points block; then the number of bodies, then
           each tube's two bodies as one-based row numbers into the bodies
           block. The two numbers of a pair are comma-separated and every field
-          ends in a semicolon, so a lone number always opens a section. The
-          example in examples/structure reads
-          `8;1,2;2,3;3,4;4,5;4,7;4;3,4;3,2;4,2;`. Row numbers are one-based so
-          that implementations in zero-based languages agree with each other; a
+          ends in a semicolon, so a lone number always opens a section. Three
+          points joined in a row, on two bodies joined by one tube, read
+          `3;1,2;2,3;2;1,2;`. Row numbers are one-based so that
+          implementations in zero-based languages agree with each other; a
           reader that gets this wrong sees every file as a mismatch.
         pattern: '^[0-9a-f]{64}$'
     additionalProperties: false
