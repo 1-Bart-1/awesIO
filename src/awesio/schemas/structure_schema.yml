@@ -20,6 +20,11 @@ description: >
   without breaking an older reader. An absent optional block means the same as
   an empty one.
 
+  A tool may carry data of its own as extra columns and as extra top-level
+  blocks of any shape. A reader ignores every column and block it does not know.
+  A later minor version may claim any such name for the schema, after which the
+  tool renames its own.
+
   A column's suffix names the frame of its vectors: `_cad` the CAD design frame,
   `_KA` the owning body's KA frame as KiteUtils.jl defines it (x from leading to
   trailing edge, y from the left to the right tip, z up).
@@ -75,8 +80,8 @@ properties:
           The preimage is ASCII and built in document order: the number of
           points, a semicolon, then for each segment its two endpoints as
           ONE-BASED row numbers into the points block, comma-separated, each
-          pair followed by a semicolon. The example in examples/structure reads
-          `8;1,2;2,3;3,4;4,5;4,7;`. Row numbers are one-based so that
+          pair followed by a semicolon. Three points joined in a row read
+          `3;1,2;2,3;`. Row numbers are one-based so that
           implementations in zero-based languages agree with each other; a
           reader that gets this wrong sees every file as a mismatch.
         pattern: '^[0-9a-f]{64}$'
@@ -367,7 +372,7 @@ properties:
                 - $ref: "#/definitions/optional_length"
               minItems: 12
 
-additionalProperties: false
+additionalProperties: true
 
 definitions:
   # ============================================================================
@@ -377,7 +382,9 @@ definitions:
     description: >
       A headers/data block. Each block fixes the columns it requires as the
       leading headers and leaves the rest open, so a writer may append columns
-      and an older reader still finds what it addresses by name.
+      and an older reader still finds what it addresses by name. Every header is
+      a string, and every row is exactly as long as the headers, which
+      `rowsMatchHeaders` states and awesio.validator enforces.
     type: object
     required:
       - headers
@@ -385,13 +392,13 @@ definitions:
     properties:
       headers:
         type: array
-        additionalItems:
+        items:
           type: string
       data:
         type: array
         items:
           type: array
-          additionalItems: true
+    rowsMatchHeaders: true
     additionalProperties: false
 
   # ============================================================================

@@ -54,8 +54,17 @@ schema fixes that there are exactly two.
 
 A block may carry columns beyond the ones the schema requires. **A reader addresses
 columns by header, never by position** — that is what lets a later minor version
-append a column without breaking an older reader. An absent optional block means the
-same as an empty one; only ``metadata``, ``points`` and ``segments`` are required.
+append a column without breaking an older reader. Every header is a string and every
+row is exactly as long as its headers; the ``table`` definition states the latter as
+``rowsMatchHeaders``, a keyword ``awesio.validator`` enforces and other draft-07
+validators skip. An absent optional block means the same as an empty one; only
+``metadata``, ``points`` and ``segments`` are required.
+
+A tool carries data of its own beside this core as extra columns and as extra
+top-level blocks of any shape, such as SAM's ``transforms`` and ``groups``; ``metadata``
+and a table's own keys stay closed. **A reader ignores every column and block it does
+not know.** A later minor version may claim any such name for the schema, after which
+the tool renames its own.
 
 YAML and JSON are two encodings of one model. JSON is the machine encoding, and it
 travels in the table-level metadata of an Arrow state log under the key ``topology``,
@@ -131,7 +140,8 @@ The ``metadata`` block carries two fields that are easy to confuse:
 ``connectivity_sha`` guards the pairing of a structure with a state log. Its preimage
 is ASCII and built in document order: the point count, a semicolon, then each
 segment's two endpoints as **one-based** row numbers into the points block, comma
-separated and semicolon terminated. The example file reads ``8;1,2;2,3;3,4;4,5;4,7;``.
+separated and semicolon terminated. Three points joined in a row read
+``3;1,2;2,3;``.
 The one-based convention is stated because a zero-based implementation would disagree
 with every file ever written and see them all as mismatches.
 
@@ -162,11 +172,68 @@ Live state: positions, velocities, forces, twist angles, reel-out lengths. A str
 is written once; state is written every step, which is why it belongs in the columns
 of a log rather than in this document.
 
-Example
--------
+Examples
+--------
 
-``examples/structure/minimal_structure.yml`` exercises every block: a ground anchor, a
-three-segment tether, a control unit on the bridle, and one wing whose left and right
-leading-edge tubes are bodies joined by a beam element.
-It is illustrative rather than a physical system; a worked kite follows once a writer
-emits conforming files.
+``examples/structure`` holds two documents of the same kite — the TU Delft V3, a
+bridled soft wing — written from the two models `V3Kite.jl
+<https://github.com/OpenSourceAWE/V3Kite.jl>`_ flies it with. They are generated
+rather than typed, so their numbers are a system that has been flown rather than an
+illustration of the format:
+
+``v3_psm_structure.yml``
+   The particle lattice: 44 points, 95 segments and 6 pulleys carry the wing's shape,
+   with one body for the wing itself. No joints — the lattice *is* the structure.
+
+``v3_beam_structure.yml``
+   The beam wing: 22 rigid bodies, twelve down the leading-edge tube and ten down the
+   trailing edge, chained by eleven ``le_beam_*`` joints and tied front to back by ten
+   ``strut_beam_*``, with a twenty-third body carrying the aero. Under them a bridle
+   of 87 tethers, in a document of 220 points over 366 segments. The same ten
+   stations, the same single winch.
+
+Between them they fill every block but ``elastic_joints``, which neither V3 model
+uses: a beam wing's tubes are Timoshenko elements.
+
+Both carry their source geometry as it stands. V3Kite's is index-keyed, so a
+component it does not name carries its row number instead: every point, segment,
+body, tether and winch of ``v3_psm_structure.yml`` is called ``"1"`` upwards, as is
+the beam file's wing body. A name need only be non-empty and unique within its block,
+so the documents conform — but their by-name references read as indices. The beam
+wing's trailing edge likewise ties its centre element twice, ``te_5`` and ``te_5_2``
+over the same two points, which is `V3Kite.jl#64
+<https://github.com/OpenSourceAWE/V3Kite.jl/issues/64>`_ rather than this schema's
+doing.
+
+Each carries in ``metadata.note`` the V3Kite.jl and SymbolicAWEModels.jl commits that
+wrote it. To write them again, in a Julia environment with both packages:
+
+.. code-block:: julia
+
+   using V3Kite, SymbolicAWEModels
+
+   data_path = v3_data_path()
+   set_data_path(data_path)
+   for (project, document) in ("system_psm.yaml" => "v3_psm_structure.yml",
+                               "system_beam.yaml" => "v3_beam_structure.yml")
+       kite_set = load_kite(project; data_path)
+       _, sys = create_v3_model(project; data_path, kite_set)
+       apply_kite_material!(sys, kite_set)
+       save_structure_document(document, sys)
+   end
+
+That writes the tables. The three ``metadata`` strings are keyword arguments of
+``save_structure_document`` — ``name``, ``description`` and ``note`` — so carry the
+committed file's over, with ``note`` naming the pair of commits you regenerated
+against.
+
+The beam project reads an aero geometry that V3Kite generates rather than tracks, so
+run its ``examples/v3beam_aero_geometry.jl`` into ``data_path`` first, which has to be
+a writable copy of ``v3_data_path()`` wherever the depot is read-only.
+
+Both wings are ``KINEMATIC`` bodies, whose frame is fitted to reference points this
+schema has no column for, so SymbolicAWEModels writes both documents and reads back
+neither: ``load_structure_document`` refuses each with *Wing 1 is KINEMATIC*. Writing
+and reading are not the same guarantee. The missing column is the wing body's
+orientation, and until the schema carries it a real kite is a document this format
+can describe but not return.
