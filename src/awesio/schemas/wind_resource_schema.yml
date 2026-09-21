@@ -180,4 +180,4 @@ properties:
               type: number
     additionalProperties: false
 
-additionalProperties: false
+additionalProperties: true

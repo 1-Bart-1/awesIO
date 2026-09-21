@@ -17,8 +17,8 @@ system because neither can describe it, so every viewer is written against one m
 With a shared structure, drawing a state is one code path and every model gets every
 viewer.
 
-.. note::
-   All quantities follow the SI unit convention used throughout awesIO.
+Validation, units, versioning and a tool's own blocks follow the :doc:`conventions`
+every awesIO file shares.
 
 Canonical form only
 -------------------
@@ -60,11 +60,10 @@ row is exactly as long as its headers; the ``table`` definition states the latte
 validators skip. An absent optional block means the same as an empty one; only
 ``metadata``, ``points`` and ``segments`` are required.
 
-A tool carries data of its own beside this core as extra columns and as extra
-top-level blocks of any shape, such as SAM's ``transforms`` and ``groups``; ``metadata``
-and a table's own keys stay closed. **A reader ignores every column and block it does
-not know.** A later minor version may claim any such name for the schema, after which
-the tool renames its own.
+Besides extra top-level blocks, such as SAM's ``transforms`` and ``groups``, a tool may
+carry its own data as extra columns. A column is a name like any other: a reader
+ignores one it does not know, and a later minor version may claim it. ``metadata`` and
+a table's own keys stay closed.
 
 YAML and JSON are two encodings of one model. JSON is the machine encoding, and it
 travels in the table-level metadata of an Arrow state log under the key ``topology``,
@@ -110,22 +109,11 @@ readers that know the name. Both joint blocks also carry ``radius``, which is th
 cylinder radius for drawing the element and has no effect on dynamics; null means the
 element is not drawn.
 
-Versioning
-----------
+Pairing with a state log
+------------------------
 
-The ``metadata`` block carries two fields that are easy to confuse:
-
-``schema``
-   Pinned by ``const`` to the filename, awesIO's convention. It identifies *which*
-   schema, never which version.
-
-``awesIO_version``
-   The version. **A reader must refuse an unknown major version and warn on an
-   unknown minor one.** Every implementation applies that one rule, so a breaking
-   change is caught at load rather than silently misread.
-
-``connectivity_sha`` guards the pairing of a structure with a state log. Its preimage
-is ASCII and built in document order: the point count, a semicolon, then each
+``metadata.connectivity_sha`` guards the pairing of a structure with a state log. Its
+preimage is ASCII and built in document order: the point count, a semicolon, then each
 segment's two endpoints as **one-based** row numbers into the points block, comma
 separated and semicolon terminated. ``minimal_structure.yml`` reads
 ``8;1,2;2,3;3,4;4,5;4,7;``.
@@ -135,14 +123,8 @@ with every file ever written and see them all as mismatches.
 Frames
 ------
 
-A column's suffix names the frame of its vectors, following KiteUtils.jl:
-
-``_cad``
-   The CAD design frame the geometry was drawn in.
-
-``_KA``
-   The owning body's kite-aero frame: x from leading to trailing edge, y from the left
-   to the right tip, z up.
+A column's suffix names the frame of its vectors, ``_cad`` or ``_KA``, as the
+:doc:`conventions` define them.
 
 ``pos_cad`` is **design** geometry. Never draw it as if it were a world position: the
 position of a point in the ENU world frame depends on elevation, azimuth, heading and

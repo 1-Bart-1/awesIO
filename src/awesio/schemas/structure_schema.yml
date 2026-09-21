@@ -15,19 +15,9 @@ description: >
   bridle_connections blocks.
 
   Every block is a headers/data table and every reference is by name. A block
-  may carry columns beyond the ones required here; a reader addresses columns by
-  header, never by position, so a later minor version may append a column
-  without breaking an older reader. An absent optional block means the same as
-  an empty one.
-
-  A tool may carry data of its own as extra columns and as extra top-level
-  blocks of any shape. A reader ignores every column and block it does not know.
-  A later minor version may claim any such name for the schema, after which the
-  tool renames its own.
-
-  A column's suffix names the frame of its vectors: `_cad` the CAD design frame,
-  `_KA` the owning body's KA frame as KiteUtils.jl defines it (x from leading to
-  trailing edge, y from the left to the right tip, z up).
+  may carry columns beyond the ones required here, a tool's own among them; a
+  reader addresses columns by header, never by position, and ignores a column it
+  does not know. An absent optional block means the same as an empty one.
 
   Live state — positions, velocities, forces, twist angles, reel-out — is not
   structure and is not described here. Nor is the placement of CAD geometry into
@@ -59,9 +49,7 @@ properties:
         type: string
       awesIO_version:
         type: string
-        description: >
-          Version of this schema the file was written against. A reader must
-          refuse an unknown major version and warn on an unknown minor one.
+        description: Version of this schema the file was written against.
         pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
       schema:
         type: string

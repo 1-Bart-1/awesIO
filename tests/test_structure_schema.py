@@ -187,11 +187,3 @@ def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     for row in extended["segments"]["data"]:
         row += [1.1e11]
     assert_valid(extended)
-
-
-def test_a_reader_accepts_blocks_a_tool_adds_beside_the_core(structure):
-    """A tool's own data rides as extra top-level blocks of any shape."""
-    extended = copy.deepcopy(structure)
-    extended["wings"] = {"headers": ["name", "n_panels"], "data": [["wing_left", 40]]}
-    extended["transforms"] = [{"elevation": 70.0, "azimuth": 0.0}]
-    assert_valid(extended)

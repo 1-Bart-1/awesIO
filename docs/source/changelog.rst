@@ -29,6 +29,9 @@ Added
 - Example YAML files for each schema, the two structure examples generated from
   V3Kite.jl's particle-lattice and Timoshenko-beam models of the TU Delft V3 kite
 - Sphinx documentation with schema reference pages
+- Conventions page for the rules every file shares; the system, wind resource and
+  operational constraints schemas accept extra top-level blocks a tool adds, as
+  structure and power curves already did
 
 Changed
 -------
