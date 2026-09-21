@@ -22,9 +22,9 @@ def structure(request):
 
 
 @pytest.fixture
-def minimal():
-    """The authored example, whose own names the cases below address rows by."""
-    return load_yaml(EXAMPLE_DIR / "minimal_structure.yml")
+def beam():
+    """The beam kite, the one example filling every block the cases below break."""
+    return load_yaml(EXAMPLE_DIR / "v3_beam_structure.yml")
 
 
 def rows(structure, block):
@@ -98,14 +98,19 @@ def direction(start, end):
     return [component / math.hypot(*span) for component in span]
 
 
-def test_the_wing_frame_follows_the_wings_own_edges(minimal):
-    """On a wing, KA x runs leading to trailing edge and KA y from left tip to right."""
-    pos = {row[0]: row[3] for row in minimal["points"]["data"]}
-    frame = next(row[3] for row in minimal["bodies"]["data"] if row[0] == "wing")
+def test_the_wing_frame_follows_the_wings_own_edges(beam):
+    """On a wing, KA x runs leading to trailing edge at mid-span, KA y tip to tip."""
+    pos = {row[0]: row[3] for row in beam["points"]["data"]}
+
+    def mid_span(edge):
+        return [(a + b) / 2 for a, b in zip(pos[f"wing_{edge}_5"], pos[f"wing_{edge}_6"])]
+
+    frame = next(row[3] for row in beam["bodies"]["data"] if row[1] == "KINEMATIC")
     chord_axis, span_axis = ka_axes_in_cad(frame)
-    for axis, (start, end) in ((chord_axis, ("le_left", "te_left")),
-                               (span_axis, ("le_left", "le_right"))):
-        for got, want in zip(axis, direction(pos[start], pos[end])):
+    for axis, (start, end) in (
+            (chord_axis, (mid_span("le"), mid_span("te"))),
+            (span_axis, (pos["wing_le_10"], pos["wing_le_1"]))):
+        for got, want in zip(axis, direction(start, end)):
             assert math.isclose(got, want, abs_tol=1e-9)
 
 
@@ -202,8 +207,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["segments"].update(units=["-"])),
     ],
 )
-def test_malformed_structures_are_rejected(minimal, label, mutate):
-    broken = copy.deepcopy(minimal)
+def test_malformed_structures_are_rejected(beam, label, mutate):
+    broken = copy.deepcopy(beam)
     mutate(broken)
     assert_invalid(broken)
 

@@ -12,7 +12,8 @@ from awesio.yaml import load_yaml
 EXAMPLES = Path(__file__).parent.parent / "examples"
 EXAMPLE_FILES = [
     "system_config/soft_kite_pumping_ground_gen_system.yml",
-    "structure/minimal_structure.yml",
+    "structure/v3_beam_structure.yml",
+    "structure/v3_psm_structure.yml",
     "wind_resource.yml",
     "ground_gen/soft_kite_pumping_ground_gen_power_curves.yml",
     "ground_gen/soft_kite_pumping_ground_gen_operational_constraints.yml",

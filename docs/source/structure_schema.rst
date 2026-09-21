@@ -142,14 +142,39 @@ Live state: positions, velocities, forces, twist angles, reel-out lengths. A str
 is written once; state is written every step, which is why it belongs in the columns
 of a log rather than in this document.
 
-Example
--------
+Examples
+--------
 
-``examples/structure/minimal_structure.yml`` exercises every block: a ground anchor, a
-three-segment tether, a control unit on the bridle, and one wing whose left and right
-leading-edge tubes are bodies, joined to each other and strutted back to the wing. It
-is illustrative rather than a physical system; a worked kite follows once a writer
-emits conforming files.
+``examples/structure`` holds two documents of the same kite — the TU Delft V3, a
+bridled soft wing — from the two models `V3Kite.jl
+<https://github.com/OpenSourceAWE/V3Kite.jl>`_ flies it with. They share the bridle,
+the tether and the single winch, and differ in what carries the wing:
+
+``v3_psm_structure.yml``
+   The particle lattice: 44 points, 95 segments and 6 pulleys carry the wing's shape,
+   and its mass sits on those points. No bodies and no tubes — the lattice *is* the
+   structure.
+
+``v3_beam_structure.yml``
+   The beam wing: 22 rigid bodies, twelve down the leading-edge tube and ten down the
+   trailing edge, joined by eleven ``le_beam_*`` tubes along the leading edge and ten
+   ``strut_beam_*`` from front to back. The canopy's 150 points ride a twenty-third,
+   ``KINEMATIC`` body whose frame is the wing's own and whose mass is zero, since the
+   wing's 11 kg are already on the other 22. Under them a bridle of 87 tethers, in a
+   document of 220 points over 366 segments.
+
+SymbolicAWEModels.jl wrote both from V3Kite.jl, against the schema before tubes, and
+they were converted onto this one rather than generated again: the tube pressure is
+V3Kite's 0.3 bar, the law Breukels', the diameter twice the old joint radius, and
+each part body's frame V3Kite's ``Q_b_to_w``. ``metadata.note`` names the commits
+they came from; once the writer emits this schema they are regenerated instead.
+
+Both keep their source's names. V3Kite's are index-keyed, so a component it does not
+name carries its row number instead — every row of ``v3_psm_structure.yml``, and the
+beam file's wing body, is called ``"1"`` upwards. The beam wing's trailing edge also
+ties its centre element twice, ``te_5`` and ``te_5_2`` over the same two points, which
+is `V3Kite.jl#64 <https://github.com/OpenSourceAWE/V3Kite.jl/issues/64>`_ rather than
+this schema's doing.
 
 Schema Structure
 ----------------
