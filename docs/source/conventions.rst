@@ -43,11 +43,15 @@ renames its own.
 Frames
 ------
 
-A vector's name ends in a suffix naming its frame, following KiteUtils.jl:
+A vector's name ends in a suffix naming its frame, following KiteUtils.jl, and a
+rotation reads ``Q_<from>_to_<to>``, a unit quaternion, scalar first:
 
-``_cad``
+``_CAD``
    The CAD design frame the geometry was drawn in.
 
+``_ENU``
+   The world frame: east, north, up.
+
 ``_KA``
-   The owning body's kite-aero frame: x from leading to trailing edge, y from the left
-   to the right tip, z up.
+   The owning body's own frame. Where the body has wing geometry it is the kite-aero
+   frame: x from leading to trailing edge, y from the left to the right tip, z up.

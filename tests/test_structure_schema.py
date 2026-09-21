@@ -2,6 +2,7 @@
 
 import copy
 import hashlib
+import math
 import warnings
 from pathlib import Path
 
@@ -22,23 +23,18 @@ def structure(request):
 
 @pytest.fixture
 def beam():
-    """The example filling the most blocks, which is what a mutation needs to break."""
+    """The beam kite, the one example filling every block the cases below break."""
     return load_yaml(EXAMPLE_DIR / "v3_beam_structure.yml")
+
+
+def rows(structure, block):
+    """An absent optional block means the same as an empty one."""
+    return structure.get(block, {"data": []})["data"]
 
 
 def a_point_on_a_body(structure):
     """Most rows leave `body` null; breaking that column needs one that does not."""
-    return next(row for row in structure["points"]["data"] if row[2] is not None)
-
-
-def an_elastic_joint(structure, bodies, anchors):
-    """No V3 model has an elastic joint, so a case against that block writes one."""
-    structure["elastic_joints"] = {
-        "headers": ["name", "bodies", "anchors_KA", "stiffness_axial",
-                    "stiffness_shear", "stiffness_torsion", "stiffness_bending",
-                    "damping", "radius"],
-        "data": [["spring", bodies, anchors, 1.2e5, 4.0e4, 900.0, 1500.0,
-                  0.002, 0.06]]}
+    return next(row for row in rows(structure, "points") if row[2] is not None)
 
 
 def assert_valid(data):
@@ -53,18 +49,16 @@ def assert_invalid(data):
         validate(data)
 
 
-def wing_names(structure):
-    """There is no wings block; a wing is a body whose `aero` is not null."""
-    return {row[0] for row in structure["bodies"]["data"] if row[2] is not None}
-
-
 def connectivity_preimage(structure):
     """One-based row numbers, so zero-based readers do not disagree with the writer."""
-    row_number = {row[0]: i + 1 for i, row in enumerate(structure["points"]["data"])}
-    return f"{len(row_number)};" + "".join(
-        f"{row_number[a]},{row_number[b]};"
-        for _, (a, b), *_ in structure["segments"]["data"]
-    )
+    def section(named, paired):
+        row_number = {row[0]: i + 1 for i, row in enumerate(rows(structure, named))}
+        return f"{len(row_number)};" + "".join(
+            f"{row_number[a]},{row_number[b]};"
+            for _, (a, b), *_ in rows(structure, paired)
+        )
+
+    return section("points", "segments") + section("bodies", "tubes")
 
 
 def test_connectivity_sha_hashes_the_preimage(structure):
@@ -73,59 +67,78 @@ def test_connectivity_sha_hashes_the_preimage(structure):
 
 
 def test_the_documented_preimage_is_what_the_rule_produces():
-    """The line the schema and the docs page quote, from three points in a row."""
+    """The line `metadata.connectivity_sha` quotes, so the two cannot drift apart."""
     three_in_a_row = {"points": {"data": [["a"], ["b"], ["c"]]},
-                      "segments": {"data": [["s1", ("a", "b")], ["s2", ("b", "c")]]}}
-    assert connectivity_preimage(three_in_a_row) == "3;1,2;2,3;"
+                      "segments": {"data": [["s1", ("a", "b")], ["s2", ("b", "c")]]},
+                      "bodies": {"data": [["x"], ["y"]]},
+                      "tubes": {"data": [["t1", ("x", "y")]]}}
+    assert connectivity_preimage(three_in_a_row) == "3;1,2;2,3;2;1,2;"
 
 
 def test_n_points_agrees_with_the_points_block(structure):
     assert structure["metadata"]["n_points"] == len(structure["points"]["data"])
 
 
-def test_wings_are_the_bodies_carrying_aero(structure):
-    assert wing_names(structure), "every example describes a system that flies"
+def test_body_frames_are_unit_quaternions(structure):
+    """Draft-07 can hold `Q_KA_to_CAD` to four numbers but not to unit length."""
+    for name, _, _, frame, *_ in rows(structure, "bodies"):
+        assert math.isclose(math.hypot(*frame), 1.0, abs_tol=1e-12), name
 
 
-def test_a_point_fixed_to_a_body_leaves_its_wing_null(structure):
-    """The body's own row names the wing, so the point does not name it again."""
-    for name, _, body, wing, *_ in structure["points"]["data"]:
-        assert body is None or wing is None, name
+def ka_axes_in_cad(frame):
+    """The KA x and y axes written in CAD: the first two columns of `Q_KA_to_CAD`."""
+    w, x, y, z = frame
+    return ([1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)],
+            [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)])
+
+
+def direction(start, end):
+    """Unit vector from `start` to `end`."""
+    span = [end_i - start_i for start_i, end_i in zip(start, end)]
+    return [component / math.hypot(*span) for component in span]
+
+
+def test_the_wing_frame_follows_the_wings_own_edges(beam):
+    """On a wing, KA x runs leading to trailing edge at mid-span, KA y tip to tip."""
+    pos = {row[0]: row[3] for row in beam["points"]["data"]}
+
+    def mid_span(edge):
+        return [(a + b) / 2 for a, b in zip(pos[f"wing_{edge}_5"], pos[f"wing_{edge}_6"])]
+
+    frame = next(row[3] for row in beam["bodies"]["data"] if row[1] == "KINEMATIC")
+    chord_axis, span_axis = ka_axes_in_cad(frame)
+    for axis, (start, end) in (
+            (chord_axis, (mid_span("le"), mid_span("te"))),
+            (span_axis, (pos["wing_le_10"], pos["wing_le_1"]))):
+        for got, want in zip(axis, direction(start, end)):
+            assert math.isclose(got, want, abs_tol=1e-9)
 
 
 def test_a_body_includes_the_mass_of_the_points_fixed_to_it(structure):
     """A reader must not add a BODY_STATIC point's `mass` to its body's again."""
-    for body, _, _, _, body_mass, *_ in structure["bodies"]["data"]:
-        point_mass = sum(row[5] for row in structure["points"]["data"]
+    for body, _, _, _, body_mass, *_ in rows(structure, "bodies"):
+        point_mass = sum(row[4] for row in structure["points"]["data"]
                          if row[2] == body)
         assert point_mass <= body_mass, body
 
 
 def test_every_reference_resolves_to_a_named_row(structure):
-    def rows(block):
-        return structure.get(block, {"data": []})["data"]
-
     def names(block):
-        return {row[0] for row in rows(block)}
+        return {row[0] for row in rows(structure, block)}
 
     points, segments, bodies = names("points"), names("segments"), names("bodies")
-    wings = wing_names(structure)
-    for name, _, body, wing, *_ in rows("points"):
+    for name, _, body, *_ in rows(structure, "points"):
         assert body is None or body in bodies, name
-        assert wing is None or wing in wings, name
-    for name, _, _, wing, *_ in rows("bodies"):
-        assert wing is None or wing in wings, name
-    for _, endpoints, *_ in rows("segments"):
+    for _, endpoints, *_ in rows(structure, "segments"):
         assert set(endpoints) <= points
-    for _, pair, *_ in rows("pulleys"):
+    for _, pair, *_ in rows(structure, "pulleys"):
         assert set(pair) <= segments
-    for _, _, wing, members, *_ in rows("stations"):
-        assert wing in wings and set(members) <= points
-    for _, start, end, members in rows("tethers"):
+    for _, _, members in rows(structure, "stations"):
+        assert set(members) <= points
+    for _, start, end, members in rows(structure, "tethers"):
         assert {start, end} <= points and set(members) <= segments
-    for block in ("elastic_joints", "timoshenko_joints"):
-        for _, pair, *_ in rows(block):
-            assert set(pair) <= bodies
+    for _, pair, *_ in rows(structure, "tubes"):
+        assert set(pair) <= bodies
 
 
 @pytest.mark.parametrize(
@@ -133,38 +146,39 @@ def test_every_reference_resolves_to_a_named_row(structure):
     [
         ("reordered headers",
          lambda d: d["points"]["headers"].reverse()),
+        ("points under the old CAD frame suffix",
+         lambda d: d["points"]["headers"].__setitem__(3, "pos_cad")),
         ("unknown dynamics type",
          lambda d: d["points"]["data"][0].__setitem__(1, "FLOATING")),
-        ("two-component pos_cad",
-         lambda d: d["points"]["data"][0].__setitem__(4, [0.0, 0.0])),
+        ("two-component pos_CAD",
+         lambda d: d["points"]["data"][0].__setitem__(3, [0.0, 0.0])),
         ("a point's body given as an index",
          lambda d: a_point_on_a_body(d).__setitem__(2, 2)),
+        ("a point with negative mass",
+         lambda d: d["points"]["data"][3].__setitem__(4, -8.4)),
+        ("a point row without its drag coefficient",
+         lambda d: d["points"]["data"][3].pop()),
         ("a segment with three endpoints",
-         lambda d: d["segments"]["data"][0][1].append("wing_le_1")),
+         lambda d: d["segments"]["data"][0][1].append("tether_2")),
         ("negative segment length",
          lambda d: d["segments"]["data"][0].__setitem__(2, -1.0)),
+        ("negative unit stiffness",
+         lambda d: d["segments"]["data"][0].__setitem__(5, -1.0)),
         ("efficiency above one",
-         lambda d: d["pulleys"]["data"][0].__setitem__(3, 1.4)),
-        ("a point with negative mass",
-         lambda d: d["points"]["data"][0].__setitem__(5, -8.4)),
-        ("a point row without its drag coefficient",
-         lambda d: d["points"]["data"][0].pop()),
-        ("a station naming no wing",
-         lambda d: d["stations"]["data"][0].__setitem__(2, None)),
+         lambda d: d["pulleys"]["data"].append(
+             ["p1", ["seg_1", "seg_2"], "DYNAMIC", 1.4])),
         ("a station holding a bare point name",
-         lambda d: d["stations"]["data"][0].__setitem__(3, "wing_le_1")),
-        ("a joint naming one body and one null",
-         lambda d: an_elastic_joint(d, ["wing_le_body_1", None],
-                                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])),
-        ("a joint with one anchor",
-         lambda d: an_elastic_joint(d, ["wing_le_body_1", "wing_le_body_2"],
-                                    [[0.0, 0.0, 0.0]])),
-        ("a two-component anchor offset",
-         lambda d: d["timoshenko_joints"]["data"][0][2].__setitem__(0, [0.0, 2.0])),
-        ("body offsets under the old body-frame suffix",
-         lambda d: d["bodies"]["headers"].__setitem__(7, "com_offset_b")),
-        ("negative axial rigidity",
-         lambda d: d["timoshenko_joints"]["data"][0].__setitem__(3, -1.0)),
+         lambda d: d["stations"]["data"][0].__setitem__(2, "le_left")),
+        ("a three-component body frame",
+         lambda d: d["bodies"]["data"][0].__setitem__(3, [1.0, 0.0, 0.0])),
+        ("a tube naming a null body",
+         lambda d: d["tubes"]["data"][0][1].__setitem__(1, None)),
+        ("a tube joining three bodies",
+         lambda d: d["tubes"]["data"][0][1].append("kcu")),
+        ("negative tube pressure",
+         lambda d: d["tubes"]["data"][0].__setitem__(3, -1.0)),
+        ("a tube whose law is a number",
+         lambda d: d["tubes"]["data"][0].__setitem__(4, 42)),
         ("short segment row",
          lambda d: d["segments"]["data"][0].pop()),
         ("empty component name",
@@ -176,7 +190,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("uppercase connectivity_sha",
          lambda d: d["metadata"].update(connectivity_sha="A" * 64)),
         ("awesIO_version without a patch component",
-         lambda d: d["metadata"].update(awesIO_version="0.1")),
+         lambda d: d["metadata"].update(awesIO_version="1.0")),
         ("another schema's name",
          lambda d: d["metadata"].update(schema="system_schema.yml")),
         ("missing segments block",
@@ -202,16 +216,15 @@ def test_malformed_structures_are_rejected(beam, label, mutate):
 def test_optional_blocks_may_be_absent(structure):
     """An absent optional block means the same as an empty one."""
     sparse = copy.deepcopy(structure)
-    for block in ("stations", "pulleys", "tethers", "winches",
-                  "bodies", "elastic_joints", "timoshenko_joints"):
+    for block in ("stations", "pulleys", "tethers", "winches", "bodies", "tubes"):
         sparse.pop(block, None)
     for row in sparse["points"]["data"]:
-        row[2] = row[3] = None
+        row[2] = None
     assert_valid(sparse)
 
 
 def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
-    """Blocks are addressed by header, so appended columns must not break v0.1."""
+    """Blocks are addressed by header, so appended columns must not break v1.0."""
     extended = copy.deepcopy(structure)
     extended["segments"]["headers"] += ["youngs_modulus"]
     for row in extended["segments"]["data"]:
