@@ -1,7 +1,6 @@
 """The rules docs/source/conventions.rst states for every awesIO file, checked on every
 schema's example."""
 
-import copy
 import warnings
 from pathlib import Path
 
@@ -37,8 +36,7 @@ def test_example_conforms(example):
 
 
 def test_a_tool_may_add_top_level_blocks_of_any_shape(example):
-    extended = copy.deepcopy(example)
-    extended["my_tool"] = {"solver": "rk4", "tolerances": [1e-6, 1e-8]}
-    extended["my_tool_notes"] = ["free", "form"]
-    assert validation_warnings(extended) == []
+    example["my_tool"] = {"solver": "rk4", "tolerances": [1e-6, 1e-8]}
+    example["my_tool_notes"] = ["free", "form"]
+    assert validation_warnings(example) == []
 

@@ -28,8 +28,9 @@ Added
 - Validator with schema auto-detection from ``metadata.schema``
 - Example YAML files for each schema
 - Sphinx documentation with schema reference pages
-- Conventions page for the rules every file shares; every schema accepts extra
-  top-level blocks a tool adds
+- Conventions page for the rules every file shares; the system, wind resource and
+  operational constraints schemas accept extra top-level blocks a tool adds, as
+  structure and power curves already did
 
 Changed
 -------

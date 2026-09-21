@@ -7,10 +7,9 @@ states only what is specific to its own file.
 Which schema a file follows
 ---------------------------
 
-Every file opens with a ``metadata`` block. Its ``schema`` field is pinned by
-``const`` to the schema's filename, such as ``structure_schema.yml``, and names
-*which* schema the file follows, never which version. ``awesio.validator.validate``
-reads it to pick the schema, so a file is validated without being told its type:
+Every file opens with a ``metadata`` block. Its ``schema`` field is pinned to the
+schema's filename, such as ``structure_schema.yml``, and names *which* schema the
+file follows, never which version. ``awesio.validator.validate`` reads it to pick the schema, so a file is validated without being told its type:
 
 .. code-block:: python
 
@@ -21,7 +20,7 @@ reads it to pick the schema, so a file is validated without being told its type:
 Units
 -----
 
-All quantities are in **SI units**. A name carries no unit suffix.
+All quantities are in **SI units**.
 
 Versioning
 ----------
