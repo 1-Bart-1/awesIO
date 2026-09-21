@@ -22,9 +22,7 @@ description: >
   one.
 
   A column's suffix names the frame of its vectors and a rotation is named
-  `Q_<from>_to_<to>`, as docs/source/conventions.rst defines them. CAD's origin
-  is the point `metadata.cad_origin` names, which `cadOriginAtZero` holds at
-  `[0, 0, 0]` and awesio.validator enforces.
+  `Q_<from>_to_<to>`, as docs/source/conventions.rst defines them.
 
   Live state — positions, velocities, forces, twist angles, reel-out — is not
   structure and is not described here. Nor is the placement of CAD geometry into
@@ -89,7 +87,8 @@ properties:
         $ref: "#/definitions/component_name"
         description: >
           The point at the origin of the CAD frame, whose `pos_CAD` is
-          `[0, 0, 0]`. For a soft kite, the KCU.
+          `[0, 0, 0]`: for a soft kite, the KCU. The root's `cadOriginAtZero`
+          holds it there, and awesio.validator enforces it.
     additionalProperties: false
 
   # --------------------------------------------------------------------------

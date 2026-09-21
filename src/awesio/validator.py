@@ -50,16 +50,17 @@ def cad_origin_at_zero(validator, enabled, instance, schema):
             and "pos_CAD" in points.get("headers", [])):
         return
     column = points["headers"].index("pos_CAD")
-    positions = {row[0]: row[column] for row in points.get("data", [])
-                 if validator.is_type(row, "array") and len(row) > column
-                 and validator.is_type(row[0], "string")}
     origin = metadata["cad_origin"]
-    if origin not in positions:
+    positions = [row[column] for row in points.get("data", [])
+                 if validator.is_type(row, "array") and len(row) > column
+                 and row[0] == origin]
+    if not positions:
         yield jsonschema.ValidationError(f"cad_origin {origin!r} names no point")
-    elif positions[origin] != [0, 0, 0]:
-        yield jsonschema.ValidationError(
-            f"cad_origin {origin!r} is at {positions[origin]}, not [0, 0, 0]"
-        )
+    for position in positions:
+        if position != [0, 0, 0]:
+            yield jsonschema.ValidationError(
+                f"cad_origin {origin!r} is at {position}, not [0, 0, 0]"
+            )
 
 
 def _enforce_no_additional_properties(schema):

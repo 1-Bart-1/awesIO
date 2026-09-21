@@ -79,12 +79,6 @@ def test_n_points_agrees_with_the_points_block(structure):
     assert structure["metadata"]["n_points"] == len(structure["points"]["data"])
 
 
-def test_the_cad_origin_point_sits_at_the_origin(structure):
-    origin = structure["metadata"]["cad_origin"]
-    positions = [row[3] for row in structure["points"]["data"] if row[0] == origin]
-    assert positions == [[0, 0, 0]]
-
-
 def test_body_frames_are_unit_quaternions(structure):
     """Draft-07 can hold `Q_KA_to_CAD` to four numbers but not to unit length."""
     for name, _, _, frame, *_ in rows(structure, "bodies"):
@@ -203,6 +197,9 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["metadata"].update(cad_origin="nowhere")),
         ("a cad_origin point away from the origin",
          lambda d: d["metadata"].update(cad_origin=d["points"]["data"][0][0])),
+        ("a second cad_origin point away from the origin",
+         lambda d: d["points"]["data"].insert(
+             0, [d["metadata"]["cad_origin"], "DYNAMIC", None, [1.0, 0, 0], 0, 0, 0])),
         ("another schema's name",
          lambda d: d["metadata"].update(schema="system_schema.yml")),
         ("missing segments block",
