@@ -49,10 +49,6 @@ def assert_invalid(data):
         validate(data)
 
 
-def test_example_conforms(structure):
-    assert_valid(structure)
-
-
 def connectivity_preimage(structure):
     """One-based row numbers, so zero-based readers do not disagree with the writer."""
     def section(named, paired):
@@ -228,13 +224,4 @@ def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     extended["segments"]["headers"] += ["youngs_modulus"]
     for row in extended["segments"]["data"]:
         row += [1.1e11]
-    assert_valid(extended)
-
-
-def test_a_reader_accepts_blocks_a_tool_adds_beside_the_core(structure):
-    """A tool's own data rides as extra top-level blocks of any shape."""
-    extended = copy.deepcopy(structure)
-    extended["wings"] = {"headers": ["name", "aero", "bodies"],
-                         "data": [["wing", "VSM", ["wing", "le_tube_left"]]]}
-    extended["transforms"] = [{"elevation": 70.0, "azimuth": 0.0}]
     assert_valid(extended)

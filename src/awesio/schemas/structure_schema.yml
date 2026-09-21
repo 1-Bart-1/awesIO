@@ -14,20 +14,12 @@ description: >
   free-form under its wing_sections, bridle_nodes, bridle_lines and
   bridle_connections blocks.
 
-  Every block is a headers/data table and every reference is by name, and what a
+  Every block is a headers/data table and every reference is by name. What a
   block requires is the core: what a viewer and every solver need, and nothing a
-  single tool needs. Columns and top-level blocks beyond those carry a tool's
-  own data. A reader addresses columns by header, never by position, and ignores
-  what it does not know, so a later minor version may append a column or claim
-  such a name. An absent optional block means the same as an empty one.
-
-  A column's suffix names the frame of its vectors: `_CAD` the CAD design frame,
-  `_ENU` the world, `_KA` the owning body's own frame, the axes its
-  `inertia_principal` is stated about. A body with wing geometry orients that
-  frame as KiteUtils.jl does — x from leading to trailing edge, y from the left
-  to the right tip, z up — and one without a leading edge orients it as its
-  writer likes, which is what `Q_KA_to_CAD` records. A rotation reads
-  `Q_<from>_to_<to>`.
+  single tool needs. A block may carry columns beyond it, a tool's own among
+  them; a reader addresses columns by header, never by position, and ignores a
+  column it does not know. An absent optional block means the same as an empty
+  one.
 
   Live state — positions, velocities, forces, twist angles, reel-out — is not
   structure and is not described here. Nor is the placement of CAD geometry into
@@ -59,9 +51,7 @@ properties:
         type: string
       awesIO_version:
         type: string
-        description: >
-          Version of this schema the file was written against. A reader must
-          refuse an unknown major version and warn on an unknown minor one.
+        description: Version of this schema the file was written against.
         pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
       schema:
         type: string
@@ -253,10 +243,12 @@ properties:
   bodies:
     description: >
       Rigid bodies. `pos_CAD` is the body's origin, which is its centre of mass,
-      and `Q_KA_to_CAD` the rotation from its KA frame into CAD. `mass` [kg] and
-      `inertia_principal` [kg·m²] are taken about that origin and already
-      include the points fixed to the body; a tool that carries no rotational
-      inertia writes zeros.
+      and `Q_KA_to_CAD` the rotation from its KA frame into CAD. That frame holds
+      the axes `inertia_principal` is stated about, oriented as KiteUtils.jl
+      orients `_KA` where the body has wing geometry and as its writer likes
+      where it has no leading edge. `mass` [kg] and `inertia_principal` [kg·m²]
+      are taken about that origin and already include the points fixed to the
+      body; a tool that carries no rotational inertia writes zeros.
     allOf:
       - $ref: "#/definitions/table"
       - properties:

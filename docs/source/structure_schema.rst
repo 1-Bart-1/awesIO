@@ -17,8 +17,8 @@ system because neither can describe it, so every viewer is written against one m
 With a shared structure, drawing a state is one code path and every model gets every
 viewer.
 
-.. note::
-   All quantities follow the SI unit convention used throughout awesIO.
+Validation, units, versioning and a tool's own blocks follow the :doc:`conventions`
+every awesIO file shares.
 
 Canonical form only
 -------------------
@@ -106,43 +106,24 @@ How a law is parameterised is not yet part of this schema, so a file naming one 
 portable only between readers that know the name. A segment's ``unit_stiffness`` takes
 the same freedom: a number is the linear value, a string names a law.
 
-Versioning
-----------
+Pairing with a state log
+------------------------
 
-The ``metadata`` block carries two fields that are easy to confuse:
-
-``schema``
-   Pinned by ``const`` to the filename, awesIO's convention. It identifies *which*
-   schema, never which version.
-
-``awesIO_version``
-   The version. **A reader must refuse an unknown major version and warn on an
-   unknown minor one.** Every implementation applies that one rule, so a breaking
-   change is caught at load rather than silently misread.
-
-``connectivity_sha`` guards the pairing of a structure with a state log. Its preimage
-is spelled out on ``metadata.connectivity_sha`` in the schema below; the row numbers
-in it are **one-based**, so that a zero-based reader does not see every file as a
-mismatch.
+``metadata.connectivity_sha`` guards the pairing of a structure with a state log. Its
+preimage is spelled out on ``metadata.connectivity_sha`` in the schema below; the row
+numbers in it are **one-based**, so that a zero-based reader does not see every file
+as a mismatch.
 
 Frames
 ------
 
-A column's suffix names the frame of its vectors, following KiteUtils.jl, and a
-rotation reads ``Q_<from>_to_<to>``:
+A column's suffix names the frame of its vectors, ``_CAD``, ``_ENU`` or ``_KA``, as
+the :doc:`conventions` define them.
 
-``_CAD``
-   The CAD design frame the geometry was drawn in.
-
-``_ENU``
-   The world frame: east, north, up.
-
-``_KA``
-   The owning body's own frame, the axes its ``inertia_principal`` is stated about. A
-   body with wing geometry orients it as KiteUtils.jl does: x from leading to trailing
-   edge, y from the left to the right tip, z up. A control unit or a single tube has no
-   leading edge, so its writer orients that frame as it likes and ``Q_KA_to_CAD`` is
-   where the file says which orientation it chose.
+A body's ``_KA`` frame holds the axes its ``inertia_principal`` is stated about. A
+control unit or a single tube has no leading edge to orient it by, so its writer
+orients that frame as it likes and ``Q_KA_to_CAD`` is where the file says which
+orientation it chose.
 
 ``pos_CAD`` is **design** geometry. Never draw it as if it were a world position: the
 position of a point in the ENU world frame depends on elevation, azimuth, heading and
