@@ -43,12 +43,13 @@ renames its own.
 Frames
 ------
 
-A vector's name ends in a suffix naming the frame it is written in, following
-KiteUtils.jl. Every frame is right-handed and in metres.
+A vector's name ends in a suffix naming the frame it is written in. Every frame is
+right-handed and in metres. The frames are those of `KiteUtils.jl
+<https://opensourceawe.github.io/KiteUtils.jl/dev/reference_frames/>`_.
 
 ``_KA``
-   A body's own frame, as KiteUtils.jl defines it: x from the leading to the trailing
-   edge, y from the left to the right tip, z up.
+   A body's own frame: x from the leading to the trailing edge, y from the left to the
+   right tip, z up.
 
 ``_CAD``
    The design frame the geometry is drawn in, with the axes of the kite's KA at zero
@@ -57,7 +58,8 @@ KiteUtils.jl. Every frame is right-handed and in metres.
    ``pos_CAD`` is ``[0, 0, 0]``: for a soft kite, the KCU.
 
 ``_ENU``
-   The world: x east, y north, z up, with its origin at the ground station.
+   The world: x east, y north, z up, with its origin at the tether exit point of the
+   ground station.
 
 A rotation reads ``Q_<from>_to_<to>``: a unit quaternion ``q``, scalar first
 ``[w, x, y, z]``, that takes a vector's components in ``<from>`` to the same vector's
