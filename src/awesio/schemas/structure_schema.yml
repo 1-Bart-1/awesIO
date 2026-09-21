@@ -21,6 +21,11 @@ description: >
   column it does not know. An absent optional block means the same as an empty
   one.
 
+  A column's suffix names the frame of its vectors and a rotation is named
+  `Q_<from>_to_<to>`, as docs/source/conventions.rst defines them. CAD's origin
+  is the point `metadata.cad_origin` names, which `cadOriginAtZero` holds at
+  `[0, 0, 0]` and awesio.validator enforces.
+
   Live state — positions, velocities, forces, twist angles, reel-out — is not
   structure and is not described here. Nor is the placement of CAD geometry into
   the ENU world frame: the same structure flies at any elevation.
@@ -30,6 +35,7 @@ required:
   - metadata
   - points
   - segments
+cadOriginAtZero: true
 
 properties:
   metadata:
@@ -42,6 +48,7 @@ properties:
       - schema
       - n_points
       - connectivity_sha
+      - cad_origin
     properties:
       name:
         type: string
@@ -78,6 +85,11 @@ properties:
           implementations in zero-based languages agree with each other; a
           reader that gets this wrong sees every file as a mismatch.
         pattern: '^[0-9a-f]{64}$'
+      cad_origin:
+        $ref: "#/definitions/component_name"
+        description: >
+          The point at the origin of the CAD frame, whose `pos_CAD` is
+          `[0, 0, 0]`. For a soft kite, the KCU.
     additionalProperties: false
 
   # --------------------------------------------------------------------------
@@ -244,11 +256,11 @@ properties:
     description: >
       Rigid bodies. `pos_CAD` is the body's origin, which is its centre of mass,
       and `Q_KA_to_CAD` the rotation from its KA frame into CAD. That frame holds
-      the axes `inertia_principal` is stated about, oriented as KiteUtils.jl
-      orients `_KA` where the body has wing geometry and as its writer likes
-      where it has no leading edge. `mass` [kg] and `inertia_principal` [kg·m²]
-      are taken about that origin and already include the points fixed to the
-      body; a tool that carries no rotational inertia writes zeros.
+      the axes `inertia_principal` is stated about; a body with no leading edge
+      to orient it by is oriented as its writer likes. `mass` [kg] and
+      `inertia_principal` [kg·m²] are taken about that origin and already
+      include the points fixed to the body; a tool that carries no rotational
+      inertia writes zeros.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -368,7 +380,7 @@ definitions:
   vec3:
     description: >
       A three-component vector in the frame its column's suffix names, in the
-      units its column implies. CAD geometry is not a world position.
+      units its column implies.
     type: array
     items:
       type: number
@@ -376,9 +388,7 @@ definitions:
     maxItems: 3
 
   quaternion:
-    description: >
-      A unit quaternion, scalar first — `[w, x, y, z]` — rotating a vector from
-      the frame its column names into the frame it names second.
+    description: A rotation, named and written as docs/source/conventions.rst defines.
     type: array
     items:
       type: number
