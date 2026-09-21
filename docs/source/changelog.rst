@@ -28,6 +28,8 @@ Added
 - Validator with schema auto-detection from ``metadata.schema``
 - Example YAML files for each schema
 - Sphinx documentation with schema reference pages
+- Conventions page for the rules every file shares; every schema accepts extra
+  top-level blocks a tool adds
 
 Changed
 -------

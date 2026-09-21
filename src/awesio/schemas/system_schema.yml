@@ -68,7 +68,7 @@ properties:
         $ref: "#/definitions/ground_station"
     additionalProperties: false
 
-additionalProperties: false
+additionalProperties: true
 
 definitions:
   # ============================================================================
