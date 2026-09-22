@@ -124,7 +124,7 @@ def validate(
 
 
 def _jsonschema_validate_modified(instance, schema, cls=None, *args, **kwargs):
-    """Modification of the `jsonschema.validate` which is though to provide a better error message when validation fails"""
+    """`jsonschema.validate` with awesIO's own keywords and a clearer error message."""
     if cls is None:
         cls = jsonschema.validators.extend(
             jsonschema.validators.validator_for(schema),

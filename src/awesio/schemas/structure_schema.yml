@@ -21,6 +21,9 @@ description: >
   column it does not know. An absent optional block means the same as an empty
   one.
 
+  A column's suffix names the frame of its vectors and a rotation is named
+  `Q_<from>_to_<to>`, as docs/source/conventions.rst defines them.
+
   Live state — positions, velocities, forces, twist angles, reel-out — is not
   structure and is not described here. Nor is the placement of CAD geometry into
   the ENU world frame: the same structure flies at any elevation.
@@ -308,9 +311,9 @@ properties:
   # --------------------------------------------------------------------------
   bodies:
     description: >
-      Rigid bodies. A body's KA frame is oriented as KiteUtils.jl orients `_KA`
-      where the body has wing geometry, and as its writer likes where it has no
-      leading edge.
+      Rigid bodies. A body's KA frame is oriented as docs/source/conventions.rst
+      defines `_KA` where the body has wing geometry, and as its writer likes
+      where it has no leading edge.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -456,7 +459,7 @@ definitions:
   vec3:
     description: >
       A three-component vector in the frame its column's suffix names, in the
-      units its column implies. CAD geometry is not a world position.
+      units its column implies.
     type: array
     items:
       type: number
@@ -474,9 +477,7 @@ definitions:
     maxItems: 3
 
   quaternion:
-    description: >
-      A unit quaternion, scalar first — `[w, x, y, z]` — rotating a vector from
-      the frame its column names into the frame it names second.
+    description: A rotation, named and written as docs/source/conventions.rst defines.
     type: array
     items:
       type: number
