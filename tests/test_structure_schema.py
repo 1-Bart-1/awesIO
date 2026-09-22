@@ -85,6 +85,14 @@ def test_body_frames_are_unit_quaternions(structure):
         assert math.isclose(math.hypot(*frame), 1.0, abs_tol=1e-12), name
 
 
+def test_body_inertia_is_symmetric(structure):
+    """Draft-07 can hold `inertia_KA` to three rows but not to symmetry."""
+    for name, *_, inertia in rows(structure, "bodies"):
+        for i in range(3):
+            for j in range(i):
+                assert inertia[i][j] == inertia[j][i], name
+
+
 def ka_axes_in_cad(frame):
     """The KA x and y axes written in CAD: the first two columns of `Q_KA_to_CAD`."""
     w, x, y, z = frame
@@ -169,6 +177,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
              ["p1", ["seg_1", "seg_2"], "DYNAMIC", 1.4])),
         ("a station holding a bare point name",
          lambda d: d["stations"]["data"][0].__setitem__(2, "le_left")),
+        ("a body inertia given as principal moments",
+         lambda d: d["bodies"]["data"][0].__setitem__(5, [1.0, 1.0, 1.0])),
         ("a three-component body frame",
          lambda d: d["bodies"]["data"][0].__setitem__(3, [1.0, 0.0, 0.0])),
         ("a tube naming a null body",

@@ -68,14 +68,19 @@ solver's settings out of every other tool's files. SAM's own ``wings``,
 ``transforms`` and ``groups`` ride beside the core, while ``metadata`` and a table's
 own keys stay closed.
 
-Stations are not aerodynamic sections
--------------------------------------
+Stations
+--------
 
-A **station** is a group of points sharing one twist degree of freedom. It is a
-structural group, and it is coarser than the aerodynamic mesh: a wing meshed at forty
-panels may carry four stations, each spanning ten of them.
+A **station** is a chordwise section of a wing, given by its points. They give the
+local chord, from which a reader derives the section's angle of attack — and, where
+they trace the profile, its airfoil shape — and they are where the aerodynamic load
+of the span the station covers is put. They share one twist degree of freedom.
 
-The distinction is worth stating because conflating the two is a mistake that has
+A station names its points, never the tubes it may lie along: a tube joins two
+bodies and has no points of its own to give it.
+
+A station is coarser than the aerodynamic mesh: a wing meshed at forty panels may
+carry four stations, each spanning ten of them. Conflating the two is a mistake that has
 already been made and fixed once in a reference implementation, where a station count
 was passed as a section count and produced a four-section wing. A reader that builds
 a lifting surface by pairing adjacent station rows will draw the wrong shape. Station
@@ -86,15 +91,18 @@ Bodies, and the tubes between them
 
 A rigid body has a position and a frame: ``pos_CAD`` is its origin, which is its
 centre of mass, and ``Q_KA_to_CAD`` the rotation from its own KA frame into CAD.
-``mass`` and ``inertia_principal`` are taken about that origin and **already include
-the points fixed to the body**, so a reader takes the body row as it stands rather
+``mass`` and ``inertia_KA`` are taken about that origin and **already include the
+points fixed to the body**, so a reader takes the body row as it stands rather
 than deriving it from those points or adding them to it again. Those points' masses
 are a part of the body's total, not an addition to it, and what they do not account
 for sits at the origin. A tool that carries no rotational inertia writes zeros.
 
-A point carries its own ``mass``, not counting the segments attached to it, and the
-``drag_area`` its ``drag_coefficient`` refers to. ``body`` is the rigid body a
-``BODY_STATIC`` point is fixed to, and is null for a point that belongs to none.
+``inertia_KA`` is the full tensor in the body's KA axes. Where those are its
+principal axes the tensor is diagonal; a wing body's KA axes are fixed by the wing's
+geometry, so its tensor in general is not.
+
+A point's ``mass`` is its extra mass: a reader adds half of each attached segment's
+mass to it, from the segments' ``diameter``, ``density`` and ``l0``.
 
 **A tube joins two bodies**, named in its ``bodies`` column and never as points.
 Their positions fix its ends and so its rest length, and one ``diameter`` holds for
@@ -120,8 +128,8 @@ Frames
 A column's suffix names the frame of its vectors, ``_CAD``, ``_ENU`` or ``_KA``, as
 the :doc:`conventions` define them.
 
-A body's ``_KA`` frame holds the axes its ``inertia_principal`` is stated about. A
-control unit or a single tube has no leading edge to orient it by, so its writer
+A body's ``_KA`` frame holds the axes its ``inertia_KA`` is stated in. A control
+unit or a single tube has no leading edge to orient it by, so its writer
 orients that frame as it likes and ``Q_KA_to_CAD`` is where the file says which
 orientation it chose.
 
@@ -160,8 +168,8 @@ the tether and the single winch, and differ in what carries the wing:
    trailing edge, joined by eleven ``le_beam_*`` tubes along the leading edge and ten
    ``strut_beam_*`` from front to back. The canopy's 150 points ride a twenty-third,
    ``KINEMATIC`` body whose frame is the wing's own and whose mass is zero, since the
-   wing's 11 kg are already on the other 22. Under them a bridle of 87 tethers, in a
-   document of 220 points over 366 segments.
+   wing's 11 kg are already on the other 22. Under them the bridle and one tether, in
+   a document of 220 points over 366 segments.
 
 SymbolicAWEModels.jl wrote both from V3Kite.jl, against the schema before tubes, and
 they were converted onto this one rather than generated again: the tube pressure is
@@ -176,6 +184,13 @@ beam file's wing body, is called ``"1"`` upwards. The beam wing's trailing edge 
 ties its centre element twice, ``te_5`` and ``te_5_2`` over the same two points, which
 is `V3Kite.jl#64 <https://github.com/OpenSourceAWE/V3Kite.jl/issues/64>`_ rather than
 this schema's doing.
+
+Columns
+-------
+
+The columns each block requires, in the order its ``headers`` must list them.
+
+.. schema-columns:: ../../src/awesio/schemas/structure_schema.yml
 
 Schema Structure
 ----------------
