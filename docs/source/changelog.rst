@@ -33,8 +33,6 @@ Added
   ``_ENU`` frames and ``Q_<from>_to_<to>`` rotations among them; the system, wind
   resource and operational constraints schemas accept extra top-level blocks a tool
   adds, as structure and power curves already did
-- A structure file's required ``metadata.cad_origin``, the point at the origin of
-  its CAD frame
 
 Changed
 -------

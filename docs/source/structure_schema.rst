@@ -174,9 +174,8 @@ the tether and the single winch, and differ in what carries the wing:
 SymbolicAWEModels.jl wrote both from V3Kite.jl, against the schema before tubes, and
 they were converted onto this one rather than generated again: the tube pressure is
 V3Kite's 0.3 bar, the law Breukels', the diameter twice the old joint radius, and
-each part body's frame V3Kite's ``Q_b_to_w``. The beam file is moved so that its KCU
-sits at the origin, where the lattice file already has it. ``metadata.note`` names the
-commits they came from; once the writer emits this schema they are regenerated instead.
+each part body's frame V3Kite's ``Q_b_to_w``. ``metadata.note`` names the commits
+they came from; once the writer emits this schema they are regenerated instead.
 
 Both keep their source's names. V3Kite's are index-keyed, so a component it does not
 name carries its row number instead — every row of ``v3_psm_structure.yml``, and the

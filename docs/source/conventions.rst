@@ -54,9 +54,7 @@ right-handed and in metres. The frames are those of `KiteUtils.jl
 
 ``_CAD``
    The design frame the geometry is drawn in, with the axes of the kite's KA at zero
-   rotation. Its origin is the point a structure file's ``metadata.cad_origin`` names,
-   whose ``pos_CAD`` is ``[0, 0, 0]``, such as the KCU, the centre of mass or the tow
-   point.
+   rotation and its origin wherever the design puts it.
 
 ``_ENU``
    The world: x east, y north, z up, with its origin at the tether exit point of the

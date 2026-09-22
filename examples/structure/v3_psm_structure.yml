@@ -6,7 +6,6 @@ metadata:
   schema: "structure_schema.yml"
   n_points: 44
   connectivity_sha: b00e0d0edfea4312b3c21dc3010bbfe0d3e29f908af79a32db5c113c8d87ec1f
-  cad_origin: "1"
 
 points:
   headers: [name, type, body, pos_CAD, mass, drag_area, drag_coefficient]

@@ -39,30 +39,6 @@ def rows_match_headers(validator, enabled, instance, schema):
             )
 
 
-def cad_origin_at_zero(validator, enabled, instance, schema):
-    """The `cadOriginAtZero` keyword: `metadata.cad_origin` names a row of the points
-    table whose `pos_CAD` is `[0, 0, 0]`."""
-    if not (enabled and validator.is_type(instance, "object")):
-        return
-    metadata, points = instance.get("metadata"), instance.get("points")
-    if not (validator.is_type(metadata, "object") and "cad_origin" in metadata
-            and validator.is_type(points, "object")
-            and "pos_CAD" in points.get("headers", [])):
-        return
-    column = points["headers"].index("pos_CAD")
-    origin = metadata["cad_origin"]
-    positions = [row[column] for row in points.get("data", [])
-                 if validator.is_type(row, "array") and len(row) > column
-                 and row[0] == origin]
-    if not positions:
-        yield jsonschema.ValidationError(f"cad_origin {origin!r} names no point")
-    for position in positions:
-        if position != [0, 0, 0]:
-            yield jsonschema.ValidationError(
-                f"cad_origin {origin!r} is at {position}, not [0, 0, 0]"
-            )
-
-
 def _enforce_no_additional_properties(schema):
     """Recursively set additionalProperties: false for all objects in the schema"""
     if isinstance(schema, dict):
@@ -152,8 +128,7 @@ def _jsonschema_validate_modified(instance, schema, cls=None, *args, **kwargs):
     if cls is None:
         cls = jsonschema.validators.extend(
             jsonschema.validators.validator_for(schema),
-            {"rowsMatchHeaders": rows_match_headers,
-             "cadOriginAtZero": cad_origin_at_zero},
+            {"rowsMatchHeaders": rows_match_headers},
         )
 
     cls.check_schema(schema)
