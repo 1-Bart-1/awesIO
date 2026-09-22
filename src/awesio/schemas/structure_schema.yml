@@ -84,24 +84,42 @@ properties:
   # POINTS AND THE ELEMENTS BUILT ON THEM
   # --------------------------------------------------------------------------
   points:
-    description: >
-      Mass points. `body` names the rigid body a BODY_STATIC point is fixed to,
-      and is null for a point that belongs to no body. `mass` [kg] is the
-      point's own mass, without its segments' share; a body's mass properties
-      already include the points fixed to it. `drag_area` [m²] is the
-      cross-sectional area `drag_coefficient` [-] refers to.
+    description: Mass points.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
           headers:
             items:
               - const: name
+                description: >
+                  Unique name of the point. A writer whose geometry is
+                  index-keyed writes the index as a string, "1" upwards.
               - const: type
+                description: >
+                  STATIC: fixed in the world. DYNAMIC: free, moved by the forces
+                  on it. BODY_STATIC: fixed in the frame of the rigid body
+                  `body` names, moving with it and passing its force and moment
+                  on to it.
               - const: body
+                description: >
+                  The rigid body a BODY_STATIC point is fixed to; null for any
+                  other point.
               - const: pos_CAD
+                description: >
+                  Position [m] in the design frame, as the design software has
+                  it.
               - const: mass
+                description: >
+                  Extra mass [kg]: what the point carries beyond half the mass
+                  of each segment attached to it, which a reader adds from the
+                  segments. A body's mass already includes the extra mass of the
+                  points fixed to it.
               - const: drag_area
+                description: >
+                  Cross-sectional area [m²] the point's drag acts on.
               - const: drag_coefficient
+                description: >
+                  Drag coefficient [-] referred to `drag_area`.
             minItems: 7
           data:
             items:
@@ -117,20 +135,31 @@ properties:
               minItems: 7
 
   segments:
-    description: >
-      Straight elastic elements between two points. `l0` [m] is the unstretched
-      length and `unit_stiffness` [N] the axial stiffness times that length.
+    description: Straight elastic elements between two points.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
           headers:
             items:
               - const: name
+                description: >
+                  Unique name of the segment.
               - const: points
+                description: >
+                  The two points the segment joins.
               - const: l0
+                description: >
+                  Unstretched length [m].
               - const: diameter
+                description: >
+                  Diameter [m] of the line, for its mass and drag.
               - const: density
+                description: >
+                  Density [kg/m³] of the line's material.
               - const: unit_stiffness
+                description: >
+                  Axial stiffness times unstretched length [N], or the name of a
+                  nonlinear law.
             minItems: 6
           data:
             items:
@@ -146,18 +175,29 @@ properties:
 
   stations:
     description: >
-      Groups of points sharing one twist degree of freedom. A station is a
-      structural group, not an aerodynamic section: a wing is typically meshed
-      into many more aerodynamic sections than it has stations, and the two must
-      not be conflated.
+      Chordwise sections of a wing. A station's points give the local chord,
+      from which a reader derives the section's angle of attack and, where the
+      points trace the profile, its airfoil shape; the aerodynamic load of the
+      span the station covers is put onto those points. The points share one
+      twist degree of freedom. A station is coarser than the aerodynamic mesh,
+      which may carry many sections per station.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
           headers:
             items:
               - const: name
+                description: >
+                  Unique name of the station.
               - const: type
+                description: >
+                  DYNAMIC: the twist is a state, solved from the moments on the
+                  station. STATIC: the twist is a prescribed control input.
+                  KINEMATIC: the twist is prescribed by geometry, such as a flap
+                  hinged between two bodies.
               - const: points
+                description: >
+                  The points the section is made of.
             minItems: 3
           data:
             items:
@@ -175,9 +215,19 @@ properties:
           headers:
             items:
               - const: name
+                description: >
+                  Unique name of the pulley.
               - const: segments
+                description: >
+                  The two segments the pulley trades length between.
               - const: type
+                description: >
+                  DYNAMIC: how the length is split between the two segments is a
+                  state.
               - const: efficiency
+                description: >
+                  Fraction [-] of the line tension the pulley passes on; the rest
+                  opposes travel.
             minItems: 4
           data:
             items:
@@ -200,9 +250,18 @@ properties:
           headers:
             items:
               - const: name
+                description: >
+                  Unique name of the tether.
               - const: start_point
+                description: >
+                  The point the tether starts at.
               - const: end_point
+                description: >
+                  The point the tether ends at.
               - const: segments
+                description: >
+                  The tether's segments, in order from `start_point` to
+                  `end_point`.
             minItems: 4
           data:
             items:
@@ -221,10 +280,20 @@ properties:
           headers:
             items:
               - const: name
+                description: >
+                  Unique name of the winch.
               - const: tethers
+                description: >
+                  The tethers the winch reels together.
               - const: winch_point
+                description: >
+                  The point the drum sits at.
               - const: gear_ratio
+                description: >
+                  Gear ratio [-] of the drive to the drum.
               - const: drum_radius
+                description: >
+                  Radius [m] of the drum.
             minItems: 5
           data:
             items:
@@ -242,24 +311,39 @@ properties:
   # --------------------------------------------------------------------------
   bodies:
     description: >
-      Rigid bodies. `pos_CAD` is the body's origin, which is its centre of mass,
-      and `Q_KA_to_CAD` the rotation from its KA frame into CAD. That frame holds
-      the axes `inertia_principal` is stated about, oriented as KiteUtils.jl
-      orients `_KA` where the body has wing geometry and as its writer likes
-      where it has no leading edge. `mass` [kg] and `inertia_principal` [kg·m²]
-      are taken about that origin and already include the points fixed to the
-      body; a tool that carries no rotational inertia writes zeros.
+      Rigid bodies. A body's KA frame is oriented as KiteUtils.jl orients `_KA`
+      where the body has wing geometry, and as its writer likes where it has no
+      leading edge.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
           headers:
             items:
               - const: name
+                description: >
+                  Unique name of the body.
               - const: type
+                description: >
+                  DYNAMIC: free in six degrees of freedom. KINEMATIC: its pose
+                  is fitted to its points. STATIC: clamped to the world.
               - const: pos_CAD
+                description: >
+                  The body's origin, its centre of mass [m], in the design
+                  frame.
               - const: Q_KA_to_CAD
+                description: >
+                  Rotation from the body's KA frame into the design frame.
               - const: mass
-              - const: inertia_principal
+                description: >
+                  Mass [kg], including the extra mass of the points fixed to the
+                  body.
+              - const: inertia_KA
+                description: >
+                  Inertia tensor [kg·m²] about the body's origin, in its KA
+                  axes, including the points fixed to the body. Principal
+                  moments are the case where the KA axes are the principal axes
+                  and the tensor is diagonal; a tool that carries no rotational
+                  inertia writes zeros.
             minItems: 6
           data:
             items:
@@ -270,27 +354,35 @@ properties:
                 - $ref: "#/definitions/vec3"
                 - $ref: "#/definitions/quaternion"
                 - $ref: "#/definitions/non_negative"
-                - $ref: "#/definitions/vec3"
+                - $ref: "#/definitions/matrix3"
               minItems: 6
 
   tubes:
     description: >
       Inflated beam elements between two bodies, whose positions fix the
-      element's ends and so its rest length. One `diameter` [m] holds for the
-      whole element, and how it curves between those ends belongs to the
-      element: only a shape its `law` cannot hold, or a taper, is a chain of
-      tubes. `pressure` [Pa] is the inflation pressure and `law` names the
-      stiffness law a reader derives the element's rigidities from.
+      element's ends and so its rest length. How it curves between those ends
+      belongs to the element: only a shape its `law` cannot hold, or a taper, is
+      a chain of tubes.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
           headers:
             items:
               - const: name
+                description: >
+                  Unique name of the tube.
               - const: bodies
+                description: >
+                  The two bodies whose positions fix the tube's ends.
               - const: diameter
+                description: >
+                  Diameter [m], one for the whole element.
               - const: pressure
+                description: >
+                  Inflation pressure [Pa].
               - const: law
+                description: >
+                  The stiffness law the element's rigidities are derived from.
             minItems: 5
           data:
             items:
@@ -372,6 +464,16 @@ definitions:
     type: array
     items:
       type: number
+    minItems: 3
+    maxItems: 3
+
+  matrix3:
+    description: >
+      A 3×3 matrix as three rows, in the axes its column's suffix names, in the
+      units its column implies.
+    type: array
+    items:
+      $ref: "#/definitions/vec3"
     minItems: 3
     maxItems: 3
 
