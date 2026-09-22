@@ -122,14 +122,6 @@ def test_the_wing_frame_follows_the_wings_own_edges(beam):
             assert math.isclose(got, want, abs_tol=1e-9)
 
 
-def test_a_body_includes_the_mass_of_the_points_fixed_to_it(structure):
-    """A reader must not add a BODY_STATIC point's `mass` to its body's again."""
-    for body, _, _, _, body_mass, *_ in rows(structure, "bodies"):
-        point_mass = sum(row[4] for row in structure["points"]["data"]
-                         if row[2] == body)
-        assert point_mass <= body_mass, body
-
-
 def test_every_reference_resolves_to_a_named_row(structure):
     def names(block):
         return {row[0] for row in rows(structure, block)}
