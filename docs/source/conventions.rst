@@ -48,14 +48,15 @@ right-handed and in metres. The frames are those of `KiteUtils.jl
 <https://opensourceawe.github.io/KiteUtils.jl/dev/reference_frames/>`_.
 
 ``_KA``
-   A body's own frame: x from the leading to the trailing edge, y from the left to the
-   right tip, z up.
+   A body's own frame: x from the leading to the trailing edge, y from the right to the
+   left tip, z up. Right and left are as seen looking at the kite from the front, so a
+   turn to the right is a positive rotation about z.
 
 ``_CAD``
    The design frame the geometry is drawn in, with the axes of the kite's KA at zero
-   rotation.
-   Its origin is the point a structure file's ``metadata.cad_origin`` names, whose
-   ``pos_CAD`` is ``[0, 0, 0]``: for a soft kite, the KCU.
+   rotation. Its origin is the point a structure file's ``metadata.cad_origin`` names,
+   whose ``pos_CAD`` is ``[0, 0, 0]``, such as the KCU, the centre of mass or the tow
+   point.
 
 ``_ENU``
    The world: x east, y north, z up, with its origin at the tether exit point of the
