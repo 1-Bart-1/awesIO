@@ -113,10 +113,8 @@ properties:
                   it.
               - const: mass
                 description: >
-                  Extra mass [kg]: what the point carries beyond half the mass
-                  of each segment attached to it, which a reader adds from the
-                  segments. A body's mass already includes the extra mass of the
-                  points fixed to it.
+                  Extra mass [kg], leaving out half the mass of each segment
+                  attached to the point, which a reader adds from the segments.
               - const: drag_area
                 description: >
                   Cross-sectional area [m²] the point's drag acts on.
@@ -182,8 +180,7 @@ properties:
       from which a reader derives the section's angle of attack and, where the
       points trace the profile, its airfoil shape; the aerodynamic load of the
       span the station covers is put onto those points. The points share one
-      twist degree of freedom. A station is coarser than the aerodynamic mesh,
-      which may carry many sections per station.
+      twist degree of freedom. A station is not tied to the aerodynamic mesh.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -331,19 +328,18 @@ properties:
                   is fitted to its points. STATIC: clamped to the world.
               - const: pos_CAD
                 description: >
-                  The body's origin, its centre of mass [m], in the design
-                  frame.
+                  The body's origin, the centre of its own mass [m], in the
+                  design frame.
               - const: Q_KA_to_CAD
                 description: >
                   Rotation from the body's KA frame into the design frame.
               - const: mass
                 description: >
-                  Mass [kg], including the extra mass of the points fixed to the
-                  body.
+                  Extra mass [kg], leaving out the points fixed to the body.
               - const: inertia_KA
                 description: >
                   Inertia tensor [kg·m²] about the body's origin, in its KA
-                  axes, including the points fixed to the body. Principal
+                  axes, leaving out the points fixed to the body. Principal
                   moments are the case where the KA axes are the principal axes
                   and the tensor is diagonal; a tool that carries no rotational
                   inertia writes zeros.

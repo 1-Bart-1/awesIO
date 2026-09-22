@@ -76,33 +76,25 @@ local chord, from which a reader derives the section's angle of attack — and, 
 they trace the profile, its airfoil shape — and they are where the aerodynamic load
 of the span the station covers is put. They share one twist degree of freedom.
 
-A station names its points, never the tubes it may lie along: a tube joins two
-bodies and has no points of its own to give it.
-
-A station is coarser than the aerodynamic mesh: a wing meshed at forty panels may
-carry four stations, each spanning ten of them. Conflating the two is a mistake that has
-already been made and fixed once in a reference implementation, where a station count
-was passed as a section count and produced a four-section wing. A reader that builds
-a lifting surface by pairing adjacent station rows will draw the wrong shape. Station
-rows carry no spanwise ordering guarantee and none should be assumed.
+A station is not tied to the aerodynamic mesh: it may cover several of its panels.
+Station rows carry no spanwise order.
 
 Bodies, and the tubes between them
 ----------------------------------
 
-A rigid body has a position and a frame: ``pos_CAD`` is its origin, which is its
-centre of mass, and ``Q_KA_to_CAD`` the rotation from its own KA frame into CAD.
-``mass`` and ``inertia_KA`` are taken about that origin and **already include the
-points fixed to the body**, so a reader takes the body row as it stands rather
-than deriving it from those points or adding them to it again. Those points' masses
-are a part of the body's total, not an addition to it, and what they do not account
-for sits at the origin. A tool that carries no rotational inertia writes zeros.
+A rigid body has a position and a frame: ``pos_CAD`` is its origin, the centre of
+its own mass, and ``Q_KA_to_CAD`` the rotation from its own KA frame into CAD.
+``mass`` and ``inertia_KA`` are taken about that origin.
+
+Every ``mass`` in a document is extra mass, never a total. A body's ``mass`` and
+``inertia_KA`` leave out the points fixed to it, which a reader adds to the body; a
+point's ``mass`` leaves out its segments, and a reader adds half of each attached
+segment's mass from their ``diameter``, ``density`` and ``l0``. A tool that carries
+no rotational inertia writes zeros.
 
 ``inertia_KA`` is the full tensor in the body's KA axes. Where those are its
 principal axes the tensor is diagonal; a wing body's KA axes are fixed by the wing's
 geometry, so its tensor in general is not.
-
-A point's ``mass`` is its extra mass: a reader adds half of each attached segment's
-mass to it, from the segments' ``diameter``, ``density`` and ``l0``.
 
 **A tube joins two bodies**, named in its ``bodies`` column and never as points.
 Their positions fix its ends and so its rest length, and one ``diameter`` holds for
