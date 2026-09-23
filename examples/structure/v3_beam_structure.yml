@@ -5,7 +5,7 @@ metadata:
   awesIO_version: 1.0.0
   schema: "structure_schema.yml"
   n_points: 220
-  connectivity_sha: e2560a6e4eb98ad200bf26c60aa82d6c49ec4be366fd9e787b90d2baf11ee65b
+  connectivity_sha: 85ec93bf928f189eb2b076acc052788683e244da6e764f6b7ccb1d336539c5f0
 
 points:
   headers: [name, type, body, pos_ENU, extra_mass, drag_area, drag_coefficient]

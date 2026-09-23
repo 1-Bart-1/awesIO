@@ -2,8 +2,8 @@ AWE System Structure Schema
 ===========================
 
 The structure schema describes the **resolved structural definition** of an AWE
-system: the points, the segments, stations, pulleys, tethers and winches built on
-them, the rigid bodies, and the tubes between those bodies. Each component carries
+system: the points, the segments, stations, pulleys, tethers, winches and canopies
+built on them, the rigid bodies, and the tubes between those bodies. Each component carries
 its own geometry and material, so a conforming file is a complete structural
 definition rather than a connectivity sketch.
 
@@ -96,10 +96,12 @@ its own mass, and ``Q_KA_to_ENU`` the rotation from its own KA frame into the wo
 ``extra_mass`` and ``extra_inertia_KA`` are taken about that origin.
 
 Every mass in a document is extra mass, never a total: a reader adds what it
-derives. A point's ``extra_mass`` leaves out its segments, and a reader adds half of
-each attached segment's mass from their ``diameter``, ``density`` and ``l0``. A
-body's ``extra_mass`` and ``extra_inertia_KA`` leave out the points fixed to it,
-which a reader adds to the body.
+derives. A point's ``extra_mass`` leaves out its segments and canopy faces. A reader
+adds half of each attached segment's mass, from its ``diameter``, ``density`` and
+``l0``, and an equal share of each face the point is a corner of: the face's area
+times its ``thickness`` times its material's density. A body's ``extra_mass`` and
+``extra_inertia_KA`` leave out the points fixed to it, which a reader adds to the
+body.
 
 ``extra_inertia_KA`` is the full tensor in the body's KA axes. Where those are its
 principal axes the tensor is diagonal; a wing body's KA axes are fixed by the wing's
@@ -114,6 +116,20 @@ hold — or a taper — needs a chain of tubes.
 How a law is parameterised is not yet part of this schema, so a file naming one is
 portable only between readers that know the name. A segment's ``unit_stiffness`` takes
 the same freedom: a number is the linear value, a string names a law.
+
+Canopies
+--------
+
+**A canopy is fabric meshed over existing points**, the way a ``.obj`` meshes faces
+over its vertices: its corners are rows of ``points``, never a second kind of point,
+so a bridle line ends on the same point the fabric does. A ``canopies`` row names the
+canopy and the one ``material`` all of it is made of; each ``canopy_faces`` row is a
+triangle or quadrilateral of that canopy, its corners in order around it, with a
+``thickness`` of its own. Like a tube, a face names what it is rather than how it is
+modelled: a reader carries its load as a membrane or as springs along its edges.
+
+Until materials are part of this schema, ``material`` is a name the reader resolves,
+as a tube's ``law`` is.
 
 Pairing with a state log
 ------------------------

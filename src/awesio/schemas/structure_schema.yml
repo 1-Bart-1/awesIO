@@ -3,10 +3,10 @@ $id: structure_schema
 title: AWE System Structure Schema
 description: >
   Resolved structural definition of an AWE system: the points, the segments,
-  stations, pulleys, tethers and winches built on them, the rigid bodies, and
-  the tubes between those bodies. Each component carries its own geometry and
-  material, so a file is a complete structural definition rather than a
-  connectivity sketch.
+  stations, pulleys, tethers, winches and canopies built on them, the rigid
+  bodies, and the tubes between those bodies. Each component carries its own
+  geometry and material, so a file is a complete structural definition rather
+  than a connectivity sketch.
 
   Fully resolved and expanded — no variable substitution, no segment counts left
   to expand, every component explicit — so a file is readable with nothing
@@ -70,14 +70,16 @@ properties:
           one structure is not silently replayed against another that indexes
           differently.
 
-          The preimage is ASCII and built in document order, in two sections:
-          the number of points, then each segment's two endpoints as ONE-BASED
-          row numbers into the points block; then the number of bodies, then
-          each tube's two bodies as one-based row numbers into the bodies
-          block. The two numbers of a pair are comma-separated and every field
-          ends in a semicolon, so a lone number always opens a section. Three
-          points joined in a row, on two bodies joined by one tube, read
-          `3;1,2;2,3;2;1,2;`. Row numbers are one-based so that
+          The preimage is ASCII and built in document order, in three
+          sections: the number of points, then each segment's two endpoints as
+          ONE-BASED row numbers into the points block; then the number of
+          bodies, then each tube's two bodies as one-based row numbers into the
+          bodies block; then the number of canopy faces, then each face's
+          corners as row numbers into the points block. The numbers of one
+          element are comma-separated and every field ends in a semicolon, so a
+          lone number always opens a section. Three points joined in a row and
+          spanned by one face, on two bodies joined by one tube, read
+          `3;1,2;2,3;2;1,2;1;1,2,3;`. Row numbers are one-based so that
           implementations in zero-based languages agree with each other; a
           reader that gets this wrong sees every file as a mismatch.
         pattern: '^[0-9a-f]{64}$'
@@ -112,7 +114,7 @@ properties:
                   Position in the world.
               - const: extra_mass
                 description: >
-                  Mass the point carries beyond its segments.
+                  Mass the point carries beyond its segments and canopy faces.
               - const: drag_area
                 description: >
                   Cross-sectional area the point's drag acts on.
@@ -354,6 +356,74 @@ properties:
                 - $ref: "#/definitions/length"
               minItems: 5
 
+  canopies:
+    description: >
+      Fabric surfaces, each meshed by the `canopy_faces` that name it.
+    allOf:
+      - $ref: "#/definitions/table"
+      - properties:
+          headers:
+            items:
+              - const: name
+                description: >
+                  Unique name of the canopy.
+              - const: material
+                description: >
+                  The fabric every face of the canopy is made of.
+            minItems: 2
+          units:
+            items:
+              - const: "-"
+              - const: "-"
+            minItems: 2
+          data:
+            items:
+              type: array
+              items:
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/model_name"
+              minItems: 2
+
+  canopy_faces:
+    description: >
+      Triangles and quadrilaterals of fabric spanned between points, whose mass
+      a reader shares among the corners. How the fabric carries load, as a
+      membrane or as springs along its edges, is the reader's model.
+    allOf:
+      - $ref: "#/definitions/table"
+      - properties:
+          headers:
+            items:
+              - const: name
+                description: >
+                  Unique name of the face.
+              - const: canopy
+                description: >
+                  The canopy the face belongs to.
+              - const: points
+                description: >
+                  The face's three or four corners, in order around it.
+              - const: thickness
+                description: >
+                  Thickness of the fabric.
+            minItems: 4
+          units:
+            items:
+              - const: "-"
+              - const: "-"
+              - const: "-"
+              - const: m
+            minItems: 4
+          data:
+            items:
+              type: array
+              items:
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/face_corners"
+                - $ref: "#/definitions/length"
+              minItems: 4
+
   # --------------------------------------------------------------------------
   # RIGID BODIES AND THE TUBES BETWEEN THEM
   # --------------------------------------------------------------------------
@@ -517,6 +587,14 @@ definitions:
       $ref: "#/definitions/component_name"
     minItems: 2
     maxItems: 2
+
+  face_corners:
+    description: The corners of a face, as three or four point names in order around it.
+    type: array
+    items:
+      $ref: "#/definitions/component_name"
+    minItems: 3
+    maxItems: 4
 
   name_list:
     description: Ordered component names, as referenced from another block.
