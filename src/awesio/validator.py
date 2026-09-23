@@ -25,12 +25,19 @@ registry = Registry(retrieve=retrieve_yaml)
 
 
 def rows_match_headers(validator, enabled, instance, schema):
-    """The `rowsMatchHeaders` keyword: every row of a headers/data table is as long as
-    its headers."""
+    """The `rowsMatchHeaders` keyword: the units and every row of a headers/units/data
+    table are as long as its headers."""
     if not (enabled and validator.is_type(instance, "object")):
         return
-    headers, rows = instance.get("headers"), instance.get("data")
-    if not (validator.is_type(headers, "array") and validator.is_type(rows, "array")):
+    headers = instance.get("headers")
+    if not validator.is_type(headers, "array"):
+        return
+    units, rows = instance.get("units"), instance.get("data")
+    if validator.is_type(units, "array") and len(units) != len(headers):
+        yield jsonschema.ValidationError(
+            f"{len(units)} units for {len(headers)} headers", path=["units"]
+        )
+    if not validator.is_type(rows, "array"):
         return
     for i, row in enumerate(rows):
         if validator.is_type(row, "array") and len(row) != len(headers):

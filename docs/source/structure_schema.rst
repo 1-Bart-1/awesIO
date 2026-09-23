@@ -37,13 +37,14 @@ on a variables block has no vocabulary in JSON Schema.
 Tables, not nesting
 -------------------
 
-Every block is a ``headers``/``data`` table and every reference is by name, so a file
-reads as a spreadsheet and rows reorder without rewriting indices:
+Every block is a ``headers``/``units``/``data`` table and every reference is by name,
+so a file reads as a spreadsheet and rows reorder without rewriting indices:
 
 .. code-block:: yaml
 
    segments:
      headers: [name, points, l0, diameter, density, unit_stiffness]
+     units: ["-", "-", m, m, kg/m^3, N]
      data:
        - [seg_1, [ground, tether_1], 10.0, 0.004, 724.0, 614600.0]
 
@@ -51,9 +52,14 @@ What an element connects is one column holding a two-element tuple — a segment
 ``points``, a pulley's ``segments``, a tube's ``bodies`` — so the schema fixes that
 there are exactly two.
 
-Every header is a string and every row is exactly as long as its headers, which the
-``table`` definition states as ``rowsMatchHeaders`` — a keyword ``awesio.validator``
-enforces and other draft-07 validators skip.
+The ``units`` row says which unit each column is in, so a file reads without the
+schema beside it. A block pins the unit of every column it requires, SI throughout
+and spelled as the :doc:`conventions` list them, and a column a writer appends states
+its own.
+
+Every header and unit is a string, and the units and every row are exactly as long as
+the headers, which the ``table`` definition states as ``rowsMatchHeaders`` — a keyword
+``awesio.validator`` enforces and other draft-07 validators skip.
 
 YAML and JSON are two encodings of one model. JSON is the machine encoding, and it
 travels in the table-level metadata of an Arrow state log under the key ``topology``,
@@ -161,7 +167,8 @@ winch, and differ in what carries the wing:
 Columns
 -------
 
-The columns each block requires, in the order its ``headers`` must list them.
+The columns each block requires, in the order its ``headers`` must list them, with
+the unit its ``units`` row must give each.
 
 .. schema-columns:: ../../src/awesio/schemas/structure_schema.yml
 

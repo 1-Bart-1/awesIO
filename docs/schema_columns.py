@@ -11,27 +11,28 @@ from sphinx.util.nodes import nested_parse_with_titles
 
 
 def required_columns(block):
-    """The `headers` items of a table block, as (header, description) pairs."""
+    """The required columns of a table block, as (header, unit, description) triples."""
     for part in block.get("allOf", []):
-        headers = part.get("properties", {}).get("headers")
-        if headers:
-            return [(item["const"], item.get("description", "").strip())
-                    for item in headers["items"]]
+        table = part.get("properties", {})
+        if "headers" in table:
+            return [(header["const"], unit["const"], header.get("description", "").strip())
+                    for header, unit in zip(table["headers"]["items"],
+                                            table["units"]["items"])]
     return []
 
 
 def column_table(name, columns):
     """A list-table of one block's columns, as reStructuredText lines."""
-    lines = [f".. list-table:: ``{name}``", "   :header-rows: 1", "   :widths: 1 4", "",
-             "   * - Column", "     - Meaning"]
-    for header, description in columns:
+    lines = [f".. list-table:: ``{name}``", "   :header-rows: 1", "   :widths: 2 1 6", "",
+             "   * - Column", "     - Unit", "     - Meaning"]
+    for header, unit, description in columns:
         literal = re.sub(r"`([^`]+)`", r"``\1``", " ".join(description.split()))
-        lines += [f"   * - ``{header}``", f"     - {literal}"]
+        lines += [f"   * - ``{header}``", f"     - ``{unit}``", f"     - {literal}"]
     return lines + [""]
 
 
 class SchemaColumns(Directive):
-    """`.. schema-columns:: <path>`: one table per headers/data block, in schema order."""
+    """`.. schema-columns:: <path>`: one table per headers/units/data block, in schema order."""
 
     required_arguments = 1
 
