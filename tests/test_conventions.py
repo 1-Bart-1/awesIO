@@ -46,7 +46,8 @@ def test_a_tool_may_add_top_level_blocks_of_any_shape(example):
 
 
 @pytest.mark.parametrize("reference", ["azimuth_reference", "reference_point"])
-def test_terrain_zones_take_their_bearings_from_the_enu_origin(reference):
+def test_terrain_zones_reject_a_reference_other_than_the_enu_origin(reference):
     constraints = load_yaml(EXAMPLES / OPERATIONAL_CONSTRAINTS)
     constraints["terrain_constraints"][reference] = "magnetic north"
-    assert validation_warnings(constraints) != []
+    [warning] = validation_warnings(constraints)
+    assert reference in warning
