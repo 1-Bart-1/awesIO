@@ -10,16 +10,17 @@ from awesio.validator import validate
 from awesio.yaml import load_yaml
 
 EXAMPLES = Path(__file__).parent.parent / "examples"
-EXAMPLE_PER_SCHEMA = [
+EXAMPLE_FILES = [
     "system_config/soft_kite_pumping_ground_gen_system.yml",
-    "structure/minimal_structure.yml",
+    "structure/v3_beam_structure.yml",
+    "structure/v3_psm_structure.yml",
     "wind_resource.yml",
     "ground_gen/soft_kite_pumping_ground_gen_power_curves.yml",
     "ground_gen/soft_kite_pumping_ground_gen_operational_constraints.yml",
 ]
 
 
-@pytest.fixture(params=EXAMPLE_PER_SCHEMA)
+@pytest.fixture(params=EXAMPLE_FILES)
 def example(request):
     return load_yaml(EXAMPLES / request.param)
 
