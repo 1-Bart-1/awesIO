@@ -1,6 +1,5 @@
 """Conformance tests for structure_schema.yml and the examples it is written for."""
 
-import copy
 import hashlib
 import math
 import re
@@ -47,6 +46,12 @@ def append_column(table, header, value, unit=None):
         table["units"].append(unit)
     for row in table["data"]:
         row.append(value)
+
+
+def append_header(table, header, unit):
+    """Append a header and its unit to `table`, leaving every row one value short."""
+    table["headers"].append(header)
+    table["units"].append(unit)
 
 
 def assert_valid(data):
@@ -238,8 +243,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("a non-string appended header",
          lambda d: d["segments"]["headers"].append(42)),
         ("a row shorter than its appended headers",
-         lambda d: (d["segments"]["headers"].append("youngs_modulus"),
-                    d["segments"]["units"].append("Pa"))),
+         lambda d: append_header(d["segments"], "youngs_modulus", "Pa")),
         ("a row longer than its headers",
          lambda d: d["segments"]["data"][0].append(1.1e11)),
         ("an undeclared key inside metadata",
@@ -256,28 +260,25 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["points"]["units"].pop()),
         ("an appended column without its unit",
          lambda d: append_column(d["segments"], "youngs_modulus", 1.1e11)),
-        ("an empty unit",
-         lambda d: d["segments"]["units"].__setitem__(0, "")),
+        ("an appended column with an empty unit",
+         lambda d: append_column(d["segments"], "youngs_modulus", 1.1e11, unit="")),
     ],
 )
 def test_malformed_structures_are_rejected(beam, label, mutate):
-    broken = copy.deepcopy(beam)
-    mutate(broken)
-    assert_invalid(broken)
+    mutate(beam)
+    assert_invalid(beam)
 
 
 def test_optional_blocks_may_be_absent(structure):
     """An absent optional block means the same as an empty one."""
-    sparse = copy.deepcopy(structure)
     for block in ("stations", "pulleys", "tethers", "winches", "bodies", "tubes"):
-        sparse.pop(block, None)
-    for row in sparse["points"]["data"]:
+        structure.pop(block, None)
+    for row in structure["points"]["data"]:
         row[2] = None
-    assert_valid(sparse)
+    assert_valid(structure)
 
 
 def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     """Blocks are addressed by header, so appended columns must not break v1.0."""
-    extended = copy.deepcopy(structure)
-    append_column(extended["segments"], "youngs_modulus", 1.1e11, unit="Pa")
-    assert_valid(extended)
+    append_column(structure["segments"], "youngs_modulus", 1.1e11, unit="Pa")
+    assert_valid(structure)

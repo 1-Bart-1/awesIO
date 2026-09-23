@@ -468,10 +468,10 @@ definitions:
       A headers/units/data block. Each block fixes the columns it requires as
       the leading headers, with their units, and leaves the rest open, so a
       writer may append columns and an older reader still finds what it
-      addresses by name. Every header and unit is a string, spelled as
-      docs/source/conventions.rst lists the units, and the units and every row
-      are exactly as long as the headers, which `rowsMatchHeaders` states and
-      awesio.validator enforces.
+      addresses by name. Every header is a string and every unit a non-empty
+      one, and the units and every row are exactly as long as the headers,
+      which `rowsMatchHeaders` states and awesio.validator enforces.
+      docs/source/conventions.rst gives each unit's spelling.
     type: object
     required:
       - headers
