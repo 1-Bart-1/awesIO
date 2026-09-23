@@ -8,7 +8,7 @@ metadata:
   connectivity_sha: e2560a6e4eb98ad200bf26c60aa82d6c49ec4be366fd9e787b90d2baf11ee65b
 
 points:
-  headers: [name, type, body, pos_ENU, mass, drag_area, drag_coefficient]
+  headers: [name, type, body, pos_ENU, extra_mass, drag_area, drag_coefficient]
   data:
     - [wing_le_10, BODY_STATIC, wing_le_body_10, [88.431350269061, -4.1055, 242.610819605908], 0.0, 0.0, 0.0]
     - [wing_te_10, BODY_STATIC, wing_te_body_10, [89.01204333677, -4.1419, 242.418939067254], 0.0, 0.0, 0.0]
@@ -650,7 +650,7 @@ winches:
     - [winch, [tether], ground_anchor, 1.0, 0.11]
 
 bodies:
-  headers: [name, type, pos_ENU, Q_KA_to_ENU, mass, inertia_KA]
+  headers: [name, type, pos_ENU, Q_KA_to_ENU, extra_mass, extra_inertia_KA]
   data:
     - ["1", KINEMATIC, [88.885850149527, 0.000062, 244.464284076327], [0.984817710186969, 0.0, 0.173591698252235, 0.0], 0.0, [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]]
     - [wing_le_body_1, DYNAMIC, [88.431350269061, 4.1055, 242.610819605908], [-0.733752274882813, 0.659925311892572, -0.097952267805738, -0.128497218100246], 0.1777, [[0.005581, 0.0, 0.0], [0.0, 0.005581, 0.0], [0.0, 0.0, 0.005581]]]

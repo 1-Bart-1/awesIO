@@ -87,15 +87,15 @@ Bodies, and the tubes between them
 
 A rigid body has a position and a frame: ``pos_ENU`` is its origin, the centre of
 its own mass, and ``Q_KA_to_ENU`` the rotation from its own KA frame into the world.
-``mass`` and ``inertia_KA`` are taken about that origin.
+``extra_mass`` and ``extra_inertia_KA`` are taken about that origin.
 
-Every ``mass`` in a document is extra mass, never a total. A body's ``mass`` and
-``inertia_KA`` leave out the points fixed to it, which a reader adds to the body; a
-point's ``mass`` leaves out its segments, and a reader adds half of each attached
-segment's mass from their ``diameter``, ``density`` and ``l0``. A tool that carries
-no rotational inertia writes zeros.
+Every mass in a document is extra mass, never a total: a reader adds what it
+derives. A point's ``extra_mass`` leaves out its segments, and a reader adds half of
+each attached segment's mass from their ``diameter``, ``density`` and ``l0``. A
+body's ``extra_mass`` and ``extra_inertia_KA`` leave out the points fixed to it,
+which a reader adds to the body.
 
-``inertia_KA`` is the full tensor in the body's KA axes. Where those are its
+``extra_inertia_KA`` is the full tensor in the body's KA axes. Where those are its
 principal axes the tensor is diagonal; a wing body's KA axes are fixed by the wing's
 geometry, so its tensor in general is not.
 
@@ -125,7 +125,7 @@ A column's suffix names the frame of its vectors, ``_ENU`` or ``_KA``, as the
 a document is expanded all the way into the world, so a reader needs no transform to
 draw it.
 
-A body's ``_KA`` frame holds the axes its ``inertia_KA`` is stated in. A control
+A body's ``_KA`` frame holds the axes its ``extra_inertia_KA`` is stated in. A control
 unit or a single tube has no leading edge to orient it by, so its writer
 orients that frame as it likes and ``Q_KA_to_ENU`` is where the file says which
 orientation it chose.

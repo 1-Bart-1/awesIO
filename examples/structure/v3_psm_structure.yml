@@ -8,7 +8,7 @@ metadata:
   connectivity_sha: b00e0d0edfea4312b3c21dc3010bbfe0d3e29f908af79a32db5c113c8d87ec1f
 
 points:
-  headers: [name, type, body, pos_ENU, mass, drag_area, drag_coefficient]
+  headers: [name, type, body, pos_ENU, extra_mass, drag_area, drag_coefficient]
   data:
     - ["1", DYNAMIC, null, [34.202014332567, 0.0, 93.969262078591], 23.25, 0.48, 0.83]
     - ["2", DYNAMIC, null, [36.870089522677, 4.07190711, 101.7876166113], 0.55, 0.0, 0.0]

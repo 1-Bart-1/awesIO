@@ -110,10 +110,9 @@ properties:
               - const: pos_ENU
                 description: >
                   Position [m] in the world.
-              - const: mass
+              - const: extra_mass
                 description: >
-                  Extra mass [kg], leaving out half the mass of each segment
-                  attached to the point, which a reader adds from the segments.
+                  Mass [kg] the point carries beyond its segments.
               - const: drag_area
                 description: >
                   Cross-sectional area [m²] the point's drag acts on.
@@ -335,16 +334,15 @@ properties:
               - const: Q_KA_to_ENU
                 description: >
                   Rotation from the body's KA frame into the world.
-              - const: mass
+              - const: extra_mass
                 description: >
-                  Extra mass [kg], leaving out the points fixed to the body.
-              - const: inertia_KA
+                  Mass [kg] the body carries beyond the points fixed to it.
+              - const: extra_inertia_KA
                 description: >
-                  Inertia tensor [kg·m²] about the body's origin, in its KA
-                  axes, leaving out the points fixed to the body. Principal
-                  moments are the case where the KA axes are the principal axes
-                  and the tensor is diagonal; a tool that carries no rotational
-                  inertia writes zeros.
+                  Inertia tensor [kg·m²] of `extra_mass` about the body's
+                  origin, in its KA axes. Principal moments are the case where
+                  the KA axes are the principal axes and the tensor is diagonal;
+                  a tool that carries no rotational inertia writes zeros.
             minItems: 6
           data:
             items:

@@ -86,7 +86,7 @@ def test_body_frames_are_unit_quaternions(structure):
 
 
 def test_body_inertia_is_symmetric(structure):
-    """Draft-07 can hold `inertia_KA` to three rows but not to symmetry."""
+    """Draft-07 can hold `extra_inertia_KA` to three rows but not to symmetry."""
     for name, *_, inertia in rows(structure, "bodies"):
         for i in range(3):
             for j in range(i):
@@ -171,7 +171,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["points"]["data"][0].__setitem__(3, [0.0, 0.0])),
         ("a point's body given as an index",
          lambda d: a_point_on_a_body(d).__setitem__(2, 2)),
-        ("a point with negative mass",
+        ("a point with negative extra mass",
          lambda d: d["points"]["data"][3].__setitem__(4, -8.4)),
         ("a point row without its drag coefficient",
          lambda d: d["points"]["data"][3].pop()),
