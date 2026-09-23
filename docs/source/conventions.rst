@@ -60,3 +60,8 @@ A rotation reads ``Q_<from>_to_<to>``: a unit quaternion ``q``, scalar first
 ``[w, x, y, z]``, that takes a vector's components in ``<from>`` to the same vector's
 components in ``<to>``, ``v_to = q v_from q*``. Its rotation matrix has ``<from>``'s
 axes, written in ``<to>``, as its columns.
+
+A bearing is a horizontal direction in ENU, the angle from north (``+y``) towards east
+(``+x``): north is 0, east is π/2. That is clockwise seen from above, a negative
+rotation about ``z``. A wind direction is the bearing the wind blows from, so a westerly
+wind has direction 3π/2.
