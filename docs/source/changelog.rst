@@ -35,6 +35,9 @@ Added
   adds, as structure and power curves already did
 - Terrain zones and wind directions are bearings in ``_ENU``; a wing's dihedral and
   sweep are measured in ``_KA``
+- Angles in a YAML file are in degrees, the one exception to SI units:
+  ``azimuth_range``, the wind direction bins, ``dihedral_angle``, ``sweep_angle`` and
+  ``max_bank_angle``
 
 Changed
 -------

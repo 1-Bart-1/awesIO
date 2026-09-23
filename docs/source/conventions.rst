@@ -20,7 +20,9 @@ file follows, never which version. ``awesio.validator.validate`` reads it to pic
 Units
 -----
 
-All quantities are in **SI units**.
+All quantities are in **SI units**, except angles in a YAML file, which are in
+**degrees**. The time-history arrays in a companion ``.npz`` file are SI throughout,
+angles in radians.
 
 Versioning
 ----------
@@ -62,6 +64,6 @@ components in ``<to>``, ``v_to = q v_from q*``. Its rotation matrix has ``<from>
 axes, written in ``<to>``, as its columns.
 
 A bearing is a horizontal direction in ENU, the angle from north (``+y``) towards east
-(``+x``): north is 0, east is π/2. That is clockwise seen from above, a negative
+(``+x``): north is 0, east is 90. That is clockwise seen from above, a negative
 rotation about ``z``. A wind direction is the bearing the wind blows from, so a westerly
-wind has direction 3π/2.
+wind has direction 270.

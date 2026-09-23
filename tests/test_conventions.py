@@ -51,3 +51,17 @@ def test_terrain_zones_reject_a_reference_other_than_the_enu_origin(reference):
     constraints["terrain_constraints"][reference] = "magnetic north"
     [warning] = validation_warnings(constraints)
     assert reference in warning
+
+
+def test_wind_directions_are_bearings_in_degrees():
+    wind_resource = load_yaml(EXAMPLES / "wind_resource.yml")
+    wind_resource["wind_direction_bins"]["bin_edges"][-1] = 361.0
+    [warning] = validation_warnings(wind_resource)
+    assert "361.0 is greater than the maximum of 360" in warning
+
+
+def test_terrain_zones_are_bearings_in_degrees():
+    constraints = load_yaml(EXAMPLES / OPERATIONAL_CONSTRAINTS)
+    constraints["terrain_constraints"]["azimuth_zones"][-1]["azimuth_range"][1] = 361.0
+    [warning] = validation_warnings(constraints)
+    assert "361.0 is greater than the maximum of 360" in warning

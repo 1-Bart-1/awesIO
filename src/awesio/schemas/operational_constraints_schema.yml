@@ -69,6 +69,7 @@ properties:
         type: object
       max_bank_angle:
         type: number
+        description: "[deg]"
       max_acceleration:
         type: number
       stall_margin:
@@ -197,7 +198,7 @@ properties:
             azimuth_range:
               type: array
               description: >
-                Bearings where the sector starts and ends [rad]. The sector runs
+                Bearings where the sector starts and ends [deg]. The sector runs
                 eastwards from the first to the last, through north if the first is
                 larger.
               minItems: 2
@@ -205,7 +206,7 @@ properties:
               items:
                 type: number
                 minimum: 0
-                maximum: 6.283185307179586
+                maximum: 360
             flight_allowed:
               type: boolean
             distance_restrictions:
