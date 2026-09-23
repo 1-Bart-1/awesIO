@@ -43,11 +43,20 @@ renames its own.
 Frames
 ------
 
-A vector's name ends in a suffix naming its frame, following KiteUtils.jl:
-
-``_cad``
-   The CAD design frame the geometry was drawn in.
+A vector's name ends in a suffix naming the frame it is written in. Every frame is
+right-handed and in metres. The frames are those of `KiteUtils.jl
+<https://opensourceawe.github.io/KiteUtils.jl/dev/reference_frames/>`_.
 
 ``_KA``
-   The owning body's kite-aero frame: x from leading to trailing edge, y from the left
-   to the right tip, z up.
+   A body's own frame: x from the leading to the trailing edge, y from the right to the
+   left tip, z up. Right and left are as seen looking at the kite from the front, so a
+   turn to the right is a positive rotation about z.
+
+``_ENU``
+   The world: x east, y north, z up, with its origin at the tether exit point of the
+   ground station.
+
+A rotation reads ``Q_<from>_to_<to>``: a unit quaternion ``q``, scalar first
+``[w, x, y, z]``, that takes a vector's components in ``<from>`` to the same vector's
+components in ``<to>``, ``v_to = q v_from q*``. Its rotation matrix has ``<from>``'s
+axes, written in ``<to>``, as its columns.
