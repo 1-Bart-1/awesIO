@@ -74,16 +74,19 @@ Stations
 A **station** is a chordwise section of a wing, given by its points. They give the
 local chord, from which a reader derives the section's angle of attack — and, where
 they trace the profile, its airfoil shape — and they are where the aerodynamic load
-of the span the station covers is put. They share one twist degree of freedom.
+of the span the station covers is put.
+
+A station's **local twist** is the angle its chord has turned through about the wing's
+KA y axis from where the document places it, positive pitching the leading edge up.
 
 A station is not tied to the aerodynamic mesh: it may cover several of its panels.
-Station rows carry no spanwise order.
+Station rows run from +y to -y of the wing's KA frame, left tip to right tip.
 
 Bodies, and the tubes between them
 ----------------------------------
 
-A rigid body has a position and a frame: ``pos_CAD`` is its origin, the centre of
-its own mass, and ``Q_KA_to_CAD`` the rotation from its own KA frame into CAD.
+A rigid body has a position and a frame: ``pos_ENU`` is its origin, the centre of
+its own mass, and ``Q_KA_to_ENU`` the rotation from its own KA frame into the world.
 ``mass`` and ``inertia_KA`` are taken about that origin.
 
 Every ``mass`` in a document is extra mass, never a total. A body's ``mass`` and
@@ -117,38 +120,30 @@ as a mismatch.
 Frames
 ------
 
-A column's suffix names the frame of its vectors, ``_CAD``, ``_ENU`` or ``_KA``, as
-the :doc:`conventions` define them.
+A column's suffix names the frame of its vectors, ``_ENU`` or ``_KA``, as the
+:doc:`conventions` define them. Every position is in ENU, where the system is placed:
+a document is expanded all the way into the world, so a reader needs no transform to
+draw it.
 
 A body's ``_KA`` frame holds the axes its ``inertia_KA`` is stated in. A control
 unit or a single tube has no leading edge to orient it by, so its writer
-orients that frame as it likes and ``Q_KA_to_CAD`` is where the file says which
+orients that frame as it likes and ``Q_KA_to_ENU`` is where the file says which
 orientation it chose.
-
-``pos_CAD`` is **design** geometry. Never draw it as if it were a world position: the
-position of a point in the ENU world frame depends on elevation, azimuth, heading and
-tether length, which are state, not structure. A body's frame is ``Q_KA_to_CAD`` in a
-structure document and ``Q_KA_to_ENU`` in a state log, which is the same rotation
-composed with the placement.
-
-The transforms that place CAD geometry into the world are **not part of this schema**,
-and not because they are unfinished. Placement is a separate concern from structure:
-the same structure flies at any elevation.
 
 What is not described here
 --------------------------
 
-Live state: positions, velocities, forces, twist angles, reel-out lengths. A structure
-is written once; state is written every step, which is why it belongs in the columns
-of a log rather than in this document.
+Live state: how positions, velocities, forces, twist angles and reel-out lengths move
+from where the document places them. A structure is written once; state is written
+every step, which is why it belongs in the columns of a log rather than in this
+document.
 
 Examples
 --------
 
-``examples/structure`` holds two documents of the same kite — the TU Delft V3, a
-bridled soft wing — from the two models `V3Kite.jl
-<https://github.com/OpenSourceAWE/V3Kite.jl>`_ flies it with. They share the bridle,
-the tether and the single winch, and differ in what carries the wing:
+``examples/structure`` holds two models of the same kite — the TU Delft V3, a bridled
+soft wing, placed at 70° elevation. They share the bridle, the tether and the single
+winch, and differ in what carries the wing:
 
 ``v3_psm_structure.yml``
    The particle lattice: 44 points, 95 segments and 6 pulleys carry the wing's shape,
@@ -162,19 +157,6 @@ the tether and the single winch, and differ in what carries the wing:
    ``KINEMATIC`` body whose frame is the wing's own and whose mass is zero, since the
    wing's 11 kg are already on the other 22. Under them the bridle and one tether, in
    a document of 220 points over 366 segments.
-
-SymbolicAWEModels.jl wrote both from V3Kite.jl, against the schema before tubes, and
-they were converted onto this one rather than generated again: the tube pressure is
-V3Kite's 0.3 bar, the law Breukels', the diameter twice the old joint radius, and
-each part body's frame V3Kite's ``Q_b_to_w``. ``metadata.note`` names the commits
-they came from; once the writer emits this schema they are regenerated instead.
-
-Both keep their source's names. V3Kite's are index-keyed, so a component it does not
-name carries its row number instead — every row of ``v3_psm_structure.yml``, and the
-beam file's wing body, is called ``"1"`` upwards. The beam wing's trailing edge also
-ties its centre element twice, ``te_5`` and ``te_5_2`` over the same two points, which
-is `V3Kite.jl#64 <https://github.com/OpenSourceAWE/V3Kite.jl/issues/64>`_ rather than
-this schema's doing.
 
 Columns
 -------

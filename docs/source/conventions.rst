@@ -52,10 +52,6 @@ right-handed and in metres. The frames are those of `KiteUtils.jl
    left tip, z up. Right and left are as seen looking at the kite from the front, so a
    turn to the right is a positive rotation about z.
 
-``_CAD``
-   The design frame the geometry is drawn in, with the axes of the kite's KA at zero
-   rotation and its origin wherever the design puts it.
-
 ``_ENU``
    The world: x east, y north, z up, with its origin at the tether exit point of the
    ground station.

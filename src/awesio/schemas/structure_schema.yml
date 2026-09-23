@@ -24,9 +24,9 @@ description: >
   A column's suffix names the frame of its vectors and a rotation is named
   `Q_<from>_to_<to>`, as docs/source/conventions.rst defines them.
 
-  Live state — positions, velocities, forces, twist angles, reel-out — is not
-  structure and is not described here. Nor is the placement of CAD geometry into
-  the ENU world frame: the same structure flies at any elevation.
+  Positions are in the ENU world frame, where the system is placed. How it moves
+  from there — positions, velocities, forces, twist angles, reel-out — is live
+  state and is not described here.
 
 type: object
 required:
@@ -107,10 +107,9 @@ properties:
                 description: >
                   The rigid body a BODY_STATIC point is fixed to; null for any
                   other point.
-              - const: pos_CAD
+              - const: pos_ENU
                 description: >
-                  Position [m] in the design frame, as the design software has
-                  it.
+                  Position [m] in the world.
               - const: mass
                 description: >
                   Extra mass [kg], leaving out half the mass of each segment
@@ -179,8 +178,11 @@ properties:
       Chordwise sections of a wing. A station's points give the local chord,
       from which a reader derives the section's angle of attack and, where the
       points trace the profile, its airfoil shape; the aerodynamic load of the
-      span the station covers is put onto those points. The points share one
-      twist degree of freedom. A station is not tied to the aerodynamic mesh.
+      span the station covers is put onto those points. A station's local twist
+      is the angle its chord has turned through about the wing's KA y axis from
+      where the document places it, positive pitching the leading edge up. A
+      station is not tied to the aerodynamic mesh. Rows run from +y to -y of the
+      wing's KA frame.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -326,13 +328,13 @@ properties:
                 description: >
                   DYNAMIC: free in six degrees of freedom. KINEMATIC: its pose
                   is fitted to its points. STATIC: clamped to the world.
-              - const: pos_CAD
+              - const: pos_ENU
                 description: >
                   The body's origin, the centre of its own mass [m], in the
-                  design frame.
-              - const: Q_KA_to_CAD
+                  world.
+              - const: Q_KA_to_ENU
                 description: >
-                  Rotation from the body's KA frame into the design frame.
+                  Rotation from the body's KA frame into the world.
               - const: mass
                 description: >
                   Extra mass [kg], leaving out the points fixed to the body.
