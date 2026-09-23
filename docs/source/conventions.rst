@@ -20,8 +20,12 @@ file follows, never which version. ``awesio.validator.validate`` reads it to pic
 Units
 -----
 
-All quantities are in **SI units**. A table states the unit of each of its columns in a
-``units`` row, one entry per header, and spells each unit one way:
+All quantities are in **SI units**, except angles in a YAML file, which are in
+**degrees**. The time-history arrays in a companion ``.npz`` file are SI throughout,
+angles in radians.
+
+A table states the unit of each of its columns in a ``units`` row, one entry per
+header, and spells each unit one way:
 
 .. list-table::
    :header-rows: 1
@@ -43,6 +47,8 @@ All quantities are in **SI units**. A table states the unit of each of its colum
      - force, and axial stiffness times length
    * - ``Pa``
      - pressure
+   * - ``deg``
+     - angle
    * - ``-``
      - dimensionless, and a column holding names, types or references
 
@@ -89,3 +95,8 @@ A rotation reads ``Q_<from>_to_<to>``: a unit quaternion ``q``, scalar first
 ``[w, x, y, z]``, that takes a vector's components in ``<from>`` to the same vector's
 components in ``<to>``, ``v_to = q v_from q*``. Its rotation matrix has ``<from>``'s
 axes, written in ``<to>``, as its columns.
+
+A bearing is a horizontal direction in ENU, the angle from north (``+y``) towards east
+(``+x``): north is 0, east is 90. That is clockwise seen from above, a negative
+rotation about ``z``. A wind direction is the bearing the wind blows from, so a westerly
+wind has direction 270.
