@@ -32,7 +32,7 @@ def column_table(name, columns):
 
 
 class SchemaColumns(Directive):
-    """`.. schema-columns:: <path>`: one table per headers/units/data block, in schema order."""
+    """`.. schema-columns:: <path>`: one column table per table block, in schema order."""
 
     required_arguments = 1
 
