@@ -35,6 +35,7 @@ Added
   adds, as structure and power curves already did
 - Terrain zones and wind directions are bearings in ``_ENU``; a wing's dihedral and
   sweep are measured in ``_KA``
+- Angles are in degrees in every file, the one exception to SI units
 
 Changed
 -------

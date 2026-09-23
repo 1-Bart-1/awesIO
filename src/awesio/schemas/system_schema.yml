@@ -244,12 +244,12 @@ definitions:
                   type: number
                   description: >
                     Angle of the line from wing root to tip above the _KA x-y plane
-                    [rad], positive with the tips up (+z).
+                    [deg], positive with the tips up (+z).
                 sweep_angle:
                   type: number
                   description: >
                     Angle of the line from the root's to the tip's leading edge,
-                    projected on the _KA x-y plane, from the y axis [rad], positive
+                    projected on the _KA x-y plane, from the y axis [deg], positive
                     with the tips aft (+x).
                 wing_sections:
                   type: object
