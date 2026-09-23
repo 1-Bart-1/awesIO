@@ -581,20 +581,23 @@ definitions:
       - type: "null"
 
   name_pair:
-    description: The two components an element connects, as a two-element tuple.
+    description: The two distinct components an element connects, as a two-element tuple.
     type: array
     items:
       $ref: "#/definitions/component_name"
     minItems: 2
     maxItems: 2
+    uniqueItems: true
 
   face_corners:
-    description: The corners of a face, as three or four point names in order around it.
+    description: >
+      The three or four distinct point names at a face's corners, in order around it.
     type: array
     items:
       $ref: "#/definitions/component_name"
     minItems: 3
     maxItems: 4
+    uniqueItems: true
 
   name_list:
     description: Ordered component names, as referenced from another block.

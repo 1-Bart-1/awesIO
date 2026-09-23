@@ -35,7 +35,7 @@ def rows(structure, block):
 
 
 def with_a_canopy(structure):
-    """No example meshes its canopy yet, so span one quadrilateral over its first points."""
+    """Span one quadrilateral canopy face over the structure's first four points."""
     corners = [row[0] for row in structure["points"]["data"][:4]]
     structure["canopies"] = {"headers": ["name", "material"], "units": ["-", "-"],
                              "data": [["canopy", "ripstop"]]}
@@ -283,6 +283,12 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: append_column(d["segments"], "youngs_modulus", 1.1e11, unit="")),
         ("a canopy face with two corners",
          lambda d: with_a_canopy(d)["canopy_faces"]["data"][0][2].__delitem__(slice(2))),
+        ("a canopy face with a repeated corner",
+         lambda d: with_a_canopy(d)["canopy_faces"]["data"][0][2].__setitem__(
+             1, d["points"]["data"][0][0])),
+        ("a segment from a point to itself",
+         lambda d: d["segments"]["data"][0][1].__setitem__(
+             1, d["segments"]["data"][0][1][0])),
         ("a canopy face with five corners",
          lambda d: with_a_canopy(d)["canopy_faces"]["data"][0][2].append("wing_le_8")),
         ("negative canopy thickness",

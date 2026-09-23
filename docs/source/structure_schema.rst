@@ -3,8 +3,8 @@ AWE System Structure Schema
 
 The structure schema describes the **resolved structural definition** of an AWE
 system: the points, the segments, stations, pulleys, tethers, winches and canopies
-built on them, the rigid bodies, and the tubes between those bodies. Each component carries
-its own geometry and material, so a conforming file is a complete structural
+built on them, the rigid bodies, and the tubes between those bodies. Each component
+carries its own geometry and material, so a conforming file is a complete structural
 definition rather than a connectivity sketch.
 
 It is the layer :doc:`system_schema` leaves free-form — its ``wing_sections``,
@@ -48,9 +48,9 @@ so a file reads as a spreadsheet and rows reorder without rewriting indices:
      data:
        - [seg_1, [ground, tether_1], 10.0, 0.004, 724.0, 614600.0]
 
-What an element connects is one column holding a two-element tuple — a segment's
-``points``, a pulley's ``segments``, a tube's ``bodies`` — so the schema fixes that
-there are exactly two.
+What an element connects is one column holding a tuple of distinct names — two for a
+segment's ``points``, a pulley's ``segments`` and a tube's ``bodies``, three or four
+for a canopy face's ``points`` — so the schema fixes how many there are.
 
 The ``units`` row says which unit each column is in, so a file reads without the
 schema beside it. A block pins the unit of every column it requires, SI throughout
@@ -99,7 +99,9 @@ Every mass in a document is extra mass, never a total: a reader adds what it
 derives. A point's ``extra_mass`` leaves out its segments and canopy faces. A reader
 adds half of each attached segment's mass, from its ``diameter``, ``density`` and
 ``l0``, and an equal share of each face the point is a corner of: the face's area
-times its ``thickness`` times its material's density. A body's ``extra_mass`` and
+times its ``thickness`` times its material's density. A face's area is half the norm
+of the cross product of its diagonals, or of two edges for a triangle, which holds for
+a quadrilateral whose corners are not in one plane. A body's ``extra_mass`` and
 ``extra_inertia_KA`` leave out the points fixed to it, which a reader adds to the
 body.
 
