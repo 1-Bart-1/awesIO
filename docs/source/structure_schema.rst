@@ -44,7 +44,7 @@ so a file reads as a spreadsheet and rows reorder without rewriting indices:
 
    segments:
      headers: [name, points, l0, diameter, density, unit_stiffness]
-     units: ["-", "-", m, m, kg/m^3, N]
+     units: [-, -, m, m, kg/m^3, N]
      data:
        - [seg_1, [ground, tether_1], 10.0, 0.004, 724.0, 614600.0]
 

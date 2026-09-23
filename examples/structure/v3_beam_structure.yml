@@ -9,7 +9,7 @@ metadata:
 
 points:
   headers: [name, type, body, pos_ENU, extra_mass, drag_area, drag_coefficient]
-  units: ["-", "-", "-", m, kg, m^2, "-"]
+  units: [-, -, -, m, kg, m^2, -]
   data:
     - [wing_le_10, BODY_STATIC, wing_le_body_10, [88.431350269061, -4.1055, 242.610819605908], 0.0, 0.0, 0.0]
     - [wing_te_10, BODY_STATIC, wing_te_body_10, [89.01204333677, -4.1419, 242.418939067254], 0.0, 0.0, 0.0]
@@ -234,7 +234,7 @@ points:
 
 segments:
   headers: [name, points, l0, diameter, density, unit_stiffness]
-  units: ["-", "-", m, m, kg/m^3, N]
+  units: [-, -, m, m, kg/m^3, N]
   data:
     - [te_1, [wing_te_10, wing_te_9], 0.840719227804383, 0.001, 724.0, 840.7962]
     - [te_2, [wing_te_9, wing_te_8], 1.328893355390116, 0.001, 724.0, 1328.9059]
@@ -605,7 +605,7 @@ segments:
 
 stations:
   headers: [name, type, points]
-  units: ["-", "-", "-"]
+  units: [-, -, -]
   data:
     - [flap_1, KINEMATIC, [wing_le_1, wing_te_1, wing_ctrl_1_1, wing_ctrl_1_2, wing_ctrl_1_3, wing_ctrl_1_4, wing_ctrl_1_5, wing_ctrl_1_6, wing_ctrl_1_7, wing_ctrl_1_8, wing_ctrl_1_9, wing_ctrl_1_10, wing_ctrl_1_11]]
     - [flap_2, KINEMATIC, [wing_le_2, wing_te_2, wing_ctrl_2_1, wing_ctrl_2_2, wing_ctrl_2_3, wing_ctrl_2_4, wing_ctrl_2_5, wing_ctrl_2_6, wing_ctrl_2_7, wing_ctrl_2_8, wing_ctrl_2_9, wing_ctrl_2_10, wing_ctrl_2_11]]
@@ -620,7 +620,7 @@ stations:
 
 pulleys:
   headers: [name, segments, type, efficiency]
-  units: ["-", "-", "-", "-"]
+  units: [-, -, -, -]
   data:
     - [ab1, [ab1_a_seg_1, ab1_b_seg_1], DYNAMIC, 0.95]
     - [ab1_2, [ab1_2_a_seg_1, ab1_2_b_seg_1], DYNAMIC, 0.95]
@@ -645,19 +645,19 @@ pulleys:
 
 tethers:
   headers: [name, start_point, end_point, segments]
-  units: ["-", "-", "-", "-"]
+  units: [-, -, -, -]
   data:
     - [tether, kcu, ground_anchor, [tether_seg_1, tether_seg_2, tether_seg_3, tether_seg_4, tether_seg_5, tether_seg_6]]
 
 winches:
   headers: [name, tethers, winch_point, gear_ratio, drum_radius]
-  units: ["-", "-", "-", "-", m]
+  units: [-, -, -, -, m]
   data:
     - [winch, [tether], ground_anchor, 1.0, 0.11]
 
 bodies:
   headers: [name, type, pos_ENU, Q_KA_to_ENU, extra_mass, extra_inertia_KA]
-  units: ["-", "-", m, "-", kg, kg*m^2]
+  units: [-, -, m, -, kg, kg*m^2]
   data:
     - ["1", KINEMATIC, [88.885850149527, 0.000062, 244.464284076327], [0.984817710186969, 0.0, 0.173591698252235, 0.0], 0.0, [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]]
     - [wing_le_body_1, DYNAMIC, [88.431350269061, 4.1055, 242.610819605908], [-0.733752274882813, 0.659925311892572, -0.097952267805738, -0.128497218100246], 0.1777, [[0.005581, 0.0, 0.0], [0.0, 0.005581, 0.0], [0.0, 0.0, 0.005581]]]
@@ -685,7 +685,7 @@ bodies:
 
 tubes:
   headers: [name, bodies, diameter, pressure, law]
-  units: ["-", "-", m, Pa, "-"]
+  units: [-, -, m, Pa, -]
   data:
     - [le_beam_1_1, [wing_le_body_1, wing_le_sub_body_1_1], 0.1138, 30000.0, breukels2011]
     - [le_beam_1_2, [wing_le_sub_body_1_1, wing_le_body_2], 0.12758, 30000.0, breukels2011]
