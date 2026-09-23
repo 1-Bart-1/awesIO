@@ -10,13 +10,16 @@ from awesio.validator import validate
 from awesio.yaml import load_yaml
 
 EXAMPLES = Path(__file__).parent.parent / "examples"
+OPERATIONAL_CONSTRAINTS = (
+    "ground_gen/soft_kite_pumping_ground_gen_operational_constraints.yml"
+)
 EXAMPLE_FILES = [
     "system_config/soft_kite_pumping_ground_gen_system.yml",
     "structure/v3_beam_structure.yml",
     "structure/v3_psm_structure.yml",
     "wind_resource.yml",
     "ground_gen/soft_kite_pumping_ground_gen_power_curves.yml",
-    "ground_gen/soft_kite_pumping_ground_gen_operational_constraints.yml",
+    OPERATIONAL_CONSTRAINTS,
 ]
 
 
@@ -41,3 +44,9 @@ def test_a_tool_may_add_top_level_blocks_of_any_shape(example):
     example["my_tool_notes"] = ["free", "form"]
     assert validation_warnings(example) == []
 
+
+@pytest.mark.parametrize("reference", ["azimuth_reference", "reference_point"])
+def test_terrain_zones_take_their_bearings_from_the_enu_origin(reference):
+    constraints = load_yaml(EXAMPLES / OPERATIONAL_CONSTRAINTS)
+    constraints["terrain_constraints"][reference] = "magnetic north"
+    assert validation_warnings(constraints) != []

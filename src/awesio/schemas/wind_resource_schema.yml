@@ -102,6 +102,9 @@ properties:
 
   wind_direction_bins:
     type: object
+    description: >
+      Bearings the wind blows from, north towards east, as the conventions page
+      defines a bearing.
     properties:
       bin_edges:
         type: array

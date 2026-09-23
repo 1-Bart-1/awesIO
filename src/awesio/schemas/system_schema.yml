@@ -242,8 +242,14 @@ definitions:
                   type: number
                 dihedral_angle:
                   type: number
+                  description: >
+                    Angle of the line from wing root to tip above the _KA x-y plane
+                    [rad], positive with the tips up (+z).
                 sweep_angle:
                   type: number
+                  description: >
+                    Angle of the leading edge from the _KA y axis in the x-y plane
+                    [rad], positive with the tips aft (+x).
                 wing_sections:
                   type: object
                 material:

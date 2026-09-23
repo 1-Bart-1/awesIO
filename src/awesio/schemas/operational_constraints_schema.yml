@@ -183,12 +183,11 @@ properties:
     properties:
       description:
         type: string
-      reference_point:
-        type: string
-      azimuth_reference:
-        type: string
       azimuth_zones:
         type: array
+        description: >
+          Sectors around the ENU origin, each covering the bearings of its
+          azimuth_range, as the conventions page defines a bearing.
         items:
           type: object
           required:
@@ -197,6 +196,8 @@ properties:
           properties:
             azimuth_range:
               type: array
+              description: >
+                First and last bearing of the sector [rad], from north towards east.
               minItems: 2
               maxItems: 2
               items:
@@ -215,6 +216,7 @@ properties:
                 properties:
                   distance_range:
                     type: array
+                    description: Horizontal distance from the ENU origin [m].
                     minItems: 2
                     maxItems: 2
                     items:
