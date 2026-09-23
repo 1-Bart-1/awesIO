@@ -58,3 +58,10 @@ def test_wind_directions_are_bearings_in_degrees():
     wind_resource["wind_direction_bins"]["bin_edges"][-1] = 361.0
     [warning] = validation_warnings(wind_resource)
     assert "361.0 is greater than the maximum of 360" in warning
+
+
+def test_terrain_zones_are_bearings_in_degrees():
+    constraints = load_yaml(EXAMPLES / OPERATIONAL_CONSTRAINTS)
+    constraints["terrain_constraints"]["azimuth_zones"][-1]["azimuth_range"][1] = 361.0
+    [warning] = validation_warnings(constraints)
+    assert "361.0 is greater than the maximum of 360" in warning

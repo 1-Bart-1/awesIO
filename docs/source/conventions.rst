@@ -20,7 +20,9 @@ file follows, never which version. ``awesio.validator.validate`` reads it to pic
 Units
 -----
 
-All quantities are in **SI units**, except angles, which are in **degrees**.
+All quantities are in **SI units**, except angles in a YAML file, which are in
+**degrees**. The time-history arrays in a companion ``.npz`` file are SI throughout,
+angles in radians.
 
 Versioning
 ----------
