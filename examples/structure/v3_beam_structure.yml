@@ -1,7 +1,7 @@
 metadata:
   name: v3_kite_beam
   description: "Resolved structure of the TU Delft V3 kite as V3Kite.jl's Timoshenko-beam project builds it: the same bridle and tether on a leading-edge tube and struts of rigid bodies joined by tubes, under a massless frame carrying the canopy."
-  note: "The V3 kite of OpenSourceAWE/V3Kite.jl@973a818a `data/system_beam.yaml`, placed at 70° elevation, 0° azimuth and 0° heading."
+  note: "The V3 kite of OpenSourceAWE/V3Kite.jl@973a818a `data/system_beam.yaml`, placed at 70° elevation, 0° azimuth and 0° heading. The canopy thickness of 0.1 mm is a placeholder: awegroup/TUDELFT_V3_KITE@6d620ba gives the fabric 170 g/m^2 and no thickness, so `v3_canopy` stands for 1700 kg/m^3 until the materials block names it. The wing's extra_mass still holds the fabric."
   awesIO_version: 1.0.0
   schema: "structure_schema.yml"
   n_points: 220

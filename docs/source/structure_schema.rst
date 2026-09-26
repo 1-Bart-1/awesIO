@@ -183,6 +183,12 @@ winch, and differ in what carries the wing:
    the wing's 11 kg are already on the other 22. Under them the bridle and one tether,
    in a document of 220 points over 95 segments.
 
+Neither source gives the canopy fabric a thickness, so both examples' 0.1 mm is a
+placeholder: awegroup/TUDELFT_V3_KITE gives the fabric's areal mass, 170 g/m², and
+``v3_canopy`` stands for that over 0.1 mm, 1700 kg/m³. The wing's ``extra_mass``
+still includes the fabric, until materials give ``v3_canopy`` a density to derive it
+from.
+
 Columns
 -------
 
