@@ -9,6 +9,7 @@ metadata:
 
 points:
   headers: [name, type, body, pos_ENU, extra_mass, drag_area, drag_coefficient]
+  units: [-, -, -, m, kg, m^2, -]
   data:
     - ["1", DYNAMIC, null, [34.202014332567, 0.0, 93.969262078591], 23.25, 0.48, 0.83]
     - ["2", DYNAMIC, null, [36.870089522677, 4.07190711, 101.7876166113], 0.55, 0.0, 0.0]
@@ -57,6 +58,7 @@ points:
 
 segments:
   headers: [name, points, l0, diameter, density, unit_stiffness]
+  units: [-, -, m, m, kg/m^3, N]
   data:
     - ["1", ["2", "4"], 0.984642, 0.001, 724.0, 1000000.0]
     - ["2", ["4", "6"], 1.327663, 0.001, 724.0, 1000000.0]
@@ -156,6 +158,7 @@ segments:
 
 stations:
   headers: [name, type, points]
+  units: [-, -, -]
   data:
     - ["1", STATIC, ["2", "3"]]
     - ["2", STATIC, ["4", "5"]]
@@ -170,6 +173,7 @@ stations:
 
 pulleys:
   headers: [name, segments, type, efficiency]
+  units: [-, -, -, -]
   data:
     - ["1", ["48", "47"], DYNAMIC, 0.95]
     - ["2", ["57", "58"], DYNAMIC, 0.95]
@@ -180,10 +184,12 @@ pulleys:
 
 tethers:
   headers: [name, start_point, end_point, segments]
+  units: [-, -, -, -]
   data:
     - ["1", "1", "39", ["1_seg_1", "1_seg_2", "1_seg_3", "1_seg_4", "1_seg_5", "1_seg_6"]]
 
 winches:
   headers: [name, tethers, winch_point, gear_ratio, drum_radius]
+  units: [-, -, -, -, m]
   data:
     - ["1", ["1"], "39", 1.0, 0.11]

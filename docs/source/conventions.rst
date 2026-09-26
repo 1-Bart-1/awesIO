@@ -24,6 +24,39 @@ All quantities are in **SI units**, except angles in a YAML file, which are in
 **degrees**. The time-history arrays in a companion ``.npz`` file are SI throughout,
 angles in radians.
 
+A table states the unit of each of its columns in a ``units`` row, one entry per
+header, and spells each unit one way:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 1 4
+
+   * - Unit
+     - Quantity
+   * - ``m``
+     - length, position, diameter
+   * - ``m^2``
+     - area
+   * - ``kg``
+     - mass
+   * - ``kg/m^3``
+     - density
+   * - ``kg*m^2``
+     - moment of inertia
+   * - ``N``
+     - force, and axial stiffness times length
+   * - ``Pa``
+     - pressure
+   * - ``deg``
+     - angle
+   * - ``-``
+     - dimensionless, and a column holding names, types or references
+
+A unit not listed is written the same way: SI symbols joined by ``*`` and ``/``,
+powers with ``^``, such as ``m/s`` or ``N*m^2``. A schema pins the unit of every
+column it requires, so a file writing ``mm`` where the schema says ``m`` does not
+validate.
+
 Versioning
 ----------
 
