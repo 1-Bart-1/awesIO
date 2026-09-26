@@ -2,8 +2,9 @@ AWE System Structure Schema
 ===========================
 
 The structure schema describes the **resolved structural definition** of an AWE
-system: the points, the segments, stations, pulleys, tethers, winches and canopies
-built on them, the rigid bodies, and the tubes between those bodies. Each component
+system: the points, the segments, pulleys, tethers and winches built on them, the
+wings with their stations and canopy faces, the rigid bodies, and the tubes between
+those bodies. Each component
 carries its own geometry and material, so a conforming file is a complete structural
 definition rather than a connectivity sketch.
 
@@ -70,12 +71,15 @@ The core, and what a tool carries beside it
 
 A column earns its place in the core by having a reader outside the tool it came
 from; that test, and not whether the quantity is respectable, is what keeps one
-solver's settings out of every other tool's files. SAM's own ``wings``,
-``transforms`` and ``groups`` ride beside the core, while ``metadata`` and a table's
-own keys stay closed.
+solver's settings out of every other tool's files. SAM appends its own wing columns
+to ``wings``, and its ``transforms`` and ``groups`` ride beside the core, while
+``metadata`` and a table's own keys stay closed.
 
-Stations
---------
+Wings, their stations and their canopy
+---------------------------------------
+
+A document may hold several wings, so each station and each canopy face names the
+``wings`` row it belongs to.
 
 A **station** is a chordwise section of a wing, given by its points. They give the
 local chord, from which a reader derives the section's angle of attack — and, where
@@ -86,7 +90,20 @@ A station's **local twist** is the angle its chord has turned through about the 
 KA y axis from where the document places it, positive pitching the leading edge up.
 
 A station is not tied to the aerodynamic mesh: it may cover several of its panels.
-Station rows run from +y to -y of the wing's KA frame, left tip to right tip.
+A wing's station rows run from +y to -y of its KA frame, left tip to right tip.
+
+**A canopy is fabric meshed over existing points**, the way a ``.obj`` meshes faces
+over its vertices: its corners are rows of ``points``, never a second kind of point,
+so a bridle line ends on the same point the fabric does. A wing has at most one
+canopy, and its ``canopy_material`` is the one fabric all of it is made of, or null
+where it has none; each ``canopy_faces`` row is a triangle or quadrilateral of that
+canopy, its corners in order around it. What the fabric weighs and how it stretches,
+per unit area, belong to its material. Like a tube, a face names what it is rather
+than how it is modelled: a reader carries its load as a membrane or as springs along
+its edges.
+
+Until materials are part of this schema, ``canopy_material`` is a name the reader
+resolves, as a tube's ``law`` is.
 
 Bodies, and the tubes between them
 ----------------------------------
@@ -118,21 +135,6 @@ hold — or a taper — needs a chain of tubes.
 How a law is parameterised is not yet part of this schema, so a file naming one is
 portable only between readers that know the name. A segment's ``unit_stiffness`` takes
 the same freedom: a number is the linear value, a string names a law.
-
-Canopies
---------
-
-**A canopy is fabric meshed over existing points**, the way a ``.obj`` meshes faces
-over its vertices: its corners are rows of ``points``, never a second kind of point,
-so a bridle line ends on the same point the fabric does. A ``canopies`` row names the
-canopy and the one ``material`` all of it is made of; each ``canopy_faces`` row is a
-triangle or quadrilateral of that canopy, its corners in order around it. What the
-fabric weighs and how it stretches, per unit area, belong to its material. Like a
-tube, a face names what it is rather than how it is modelled: a reader carries its
-load as a membrane or as springs along its edges.
-
-Until materials are part of this schema, ``material`` is a name the reader resolves,
-as a tube's ``law`` is.
 
 Pairing with a state log
 ------------------------

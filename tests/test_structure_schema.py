@@ -182,14 +182,15 @@ def test_every_reference_resolves_to_a_named_row(structure):
         assert set(endpoints) <= points
     for _, pair, *_ in rows(structure, "pulleys"):
         assert set(pair) <= segments
-    for _, _, members in rows(structure, "stations"):
-        assert set(members) <= points
+    for name, wing, _, members in rows(structure, "stations"):
+        assert wing in names("wings") and set(members) <= points, name
     for _, start, end, members in rows(structure, "tethers"):
         assert {start, end} <= points and set(members) <= segments
     for _, pair, *_ in rows(structure, "tubes"):
         assert set(pair) <= bodies
-    for name, canopy, corners, *_ in rows(structure, "canopy_faces"):
-        assert canopy in names("canopies") and set(corners) <= points, name
+    with_a_canopy = {name for name, material, *_ in rows(structure, "wings") if material}
+    for name, wing, corners, *_ in rows(structure, "canopy_faces"):
+        assert wing in with_a_canopy and set(corners) <= points, name
 
 
 @pytest.mark.parametrize(
@@ -219,7 +220,9 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["pulleys"]["data"].append(
              ["p1", ["seg_1", "seg_2"], "DYNAMIC", 1.4])),
         ("a station holding a bare point name",
-         lambda d: d["stations"]["data"][0].__setitem__(2, "le_left")),
+         lambda d: d["stations"]["data"][0].__setitem__(3, "le_left")),
+        ("a station without its wing",
+         lambda d: d["stations"]["data"][0].__setitem__(1, None)),
         ("a body inertia given as principal moments",
          lambda d: d["bodies"]["data"][0].__setitem__(5, [1.0, 1.0, 1.0])),
         ("a three-component body frame",
@@ -281,8 +284,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("a canopy face with five corners",
          lambda d: d["canopy_faces"]["data"][0][2].append("wing_le_8")),
         ("a canopy material given as a number",
-         lambda d: d["canopies"]["data"][0].__setitem__(1, 42)),
-        ("a canopy face without its canopy",
+         lambda d: d["wings"]["data"][0].__setitem__(1, 42)),
+        ("a canopy face without its wing",
          lambda d: d["canopy_faces"]["data"][0].__setitem__(1, None)),
     ],
 )
@@ -294,10 +297,16 @@ def test_malformed_structures_are_rejected(beam, label, mutate):
 def test_optional_blocks_may_be_absent(structure):
     """An absent optional block means the same as an empty one."""
     for block in ("stations", "pulleys", "tethers", "winches", "bodies", "tubes",
-                  "canopies", "canopy_faces"):
+                  "wings", "canopy_faces"):
         structure.pop(block, None)
     for row in structure["points"]["data"]:
         row[2] = None
+    assert_valid(structure)
+
+
+def test_a_wing_may_have_no_canopy(structure):
+    structure["wings"]["data"][0][1] = None
+    structure.pop("canopy_faces")
     assert_valid(structure)
 
 
