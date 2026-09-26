@@ -99,9 +99,9 @@ Every mass in a document is extra mass, never a total: a reader adds what it
 derives. A point's ``extra_mass`` leaves out its segments and canopy faces. A reader
 adds half of each attached segment's mass, from its ``diameter``, ``density`` and
 ``l0``, and an equal share of each face the point is a corner of: the face's area
-times its ``thickness`` times its material's density. A face's area is half the norm
-of the cross product of its diagonals, or of two edges for a triangle, which holds for
-a quadrilateral whose corners are not in one plane. A body's ``extra_mass`` and
+times its material's areal density. A face's area is half the norm of the cross
+product of its diagonals, or of two edges for a triangle, which holds for a
+quadrilateral whose corners are not in one plane. A body's ``extra_mass`` and
 ``extra_inertia_KA`` leave out the points fixed to it, which a reader adds to the
 body.
 
@@ -126,9 +126,10 @@ Canopies
 over its vertices: its corners are rows of ``points``, never a second kind of point,
 so a bridle line ends on the same point the fabric does. A ``canopies`` row names the
 canopy and the one ``material`` all of it is made of; each ``canopy_faces`` row is a
-triangle or quadrilateral of that canopy, its corners in order around it, with a
-``thickness`` of its own. Like a tube, a face names what it is rather than how it is
-modelled: a reader carries its load as a membrane or as springs along its edges.
+triangle or quadrilateral of that canopy, its corners in order around it. What the
+fabric weighs and how it stretches, per unit area, belong to its material. Like a
+tube, a face names what it is rather than how it is modelled: a reader carries its
+load as a membrane or as springs along its edges.
 
 Until materials are part of this schema, ``material`` is a name the reader resolves,
 as a tube's ``law`` is.
@@ -183,11 +184,9 @@ winch, and differ in what carries the wing:
    the wing's 11 kg are already on the other 22. Under them the bridle and one tether,
    in a document of 220 points over 95 segments.
 
-Neither source gives the canopy fabric a thickness, so both examples' 0.1 mm is a
-placeholder: awegroup/TUDELFT_V3_KITE gives the fabric's areal mass, 170 g/m², and
-``v3_canopy`` stands for that over 0.1 mm, 1700 kg/m³. The wing's ``extra_mass``
-still includes the fabric, until materials give ``v3_canopy`` a density to derive it
-from.
+``v3_canopy`` is the 170 g/m² fabric of awegroup/TUDELFT_V3_KITE. The wing's
+``extra_mass`` still includes it, until materials give ``v3_canopy`` that areal
+density to derive it from.
 
 Columns
 -------

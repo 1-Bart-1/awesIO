@@ -188,7 +188,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
         assert {start, end} <= points and set(members) <= segments
     for _, pair, *_ in rows(structure, "tubes"):
         assert set(pair) <= bodies
-    for name, canopy, corners, _ in rows(structure, "canopy_faces"):
+    for name, canopy, corners, *_ in rows(structure, "canopy_faces"):
         assert canopy in names("canopies") and set(corners) <= points, name
 
 
@@ -280,10 +280,6 @@ def test_every_reference_resolves_to_a_named_row(structure):
              1, d["segments"]["data"][0][1][0])),
         ("a canopy face with five corners",
          lambda d: d["canopy_faces"]["data"][0][2].append("wing_le_8")),
-        ("negative canopy thickness",
-         lambda d: d["canopy_faces"]["data"][0].__setitem__(3, -1e-4)),
-        ("a canopy thickness in mm",
-         lambda d: d["canopy_faces"]["units"].__setitem__(3, "mm")),
         ("a canopy material given as a number",
          lambda d: d["canopies"]["data"][0].__setitem__(1, 42)),
         ("a canopy face without its canopy",

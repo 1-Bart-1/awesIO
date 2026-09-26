@@ -1,7 +1,7 @@
 metadata:
   name: v3_kite_psm
   description: "Resolved structure of the TU Delft V3 kite as V3Kite.jl's particle-lattice project builds it: a bridled soft wing whose shape the particle lattice carries, with no rigid body."
-  note: "The V3 kite of OpenSourceAWE/V3Kite.jl@973a818a `data/system_psm.yaml`, placed at 70° elevation, 0° azimuth and 0° heading. The canopy thickness of 0.1 mm is a placeholder: awegroup/TUDELFT_V3_KITE@6d620ba gives the fabric 170 g/m^2 and no thickness, so `v3_canopy` stands for 1700 kg/m^3 until the materials block names it. The wing's extra_mass still holds the fabric."
+  note: "The V3 kite of OpenSourceAWE/V3Kite.jl@973a818a `data/system_psm.yaml`, placed at 70° elevation, 0° azimuth and 0° heading. `v3_canopy` is the 170 g/m^2 fabric of awegroup/TUDELFT_V3_KITE@6d620ba, which the wing's extra_mass still holds."
   awesIO_version: 1.0.0
   schema: "structure_schema.yml"
   n_points: 44
@@ -174,15 +174,15 @@ canopies:
     - [canopy, v3_canopy]
 
 canopy_faces:
-  headers: [name, canopy, points, thickness]
-  units: [-, -, -, m]
+  headers: [name, canopy, points]
+  units: [-, -, -]
   data:
-    - [canopy_1, canopy, ["2", "3", "5", "4"], 1.0e-4]
-    - [canopy_2, canopy, ["4", "5", "7", "6"], 1.0e-4]
-    - [canopy_3, canopy, ["6", "7", "9", "8"], 1.0e-4]
-    - [canopy_4, canopy, ["8", "9", "11", "10"], 1.0e-4]
-    - [canopy_5, canopy, ["10", "11", "13", "12"], 1.0e-4]
-    - [canopy_6, canopy, ["12", "13", "15", "14"], 1.0e-4]
-    - [canopy_7, canopy, ["14", "15", "17", "16"], 1.0e-4]
-    - [canopy_8, canopy, ["16", "17", "19", "18"], 1.0e-4]
-    - [canopy_9, canopy, ["18", "19", "21", "20"], 1.0e-4]
+    - [canopy_1, canopy, ["2", "3", "5", "4"]]
+    - [canopy_2, canopy, ["4", "5", "7", "6"]]
+    - [canopy_3, canopy, ["6", "7", "9", "8"]]
+    - [canopy_4, canopy, ["8", "9", "11", "10"]]
+    - [canopy_5, canopy, ["10", "11", "13", "12"]]
+    - [canopy_6, canopy, ["12", "13", "15", "14"]]
+    - [canopy_7, canopy, ["14", "15", "17", "16"]]
+    - [canopy_8, canopy, ["16", "17", "19", "18"]]
+    - [canopy_9, canopy, ["18", "19", "21", "20"]]

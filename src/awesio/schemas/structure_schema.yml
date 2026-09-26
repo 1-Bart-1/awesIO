@@ -403,17 +403,13 @@ properties:
               - const: points
                 description: >
                   The face's three or four corners, in order around it.
-              - const: thickness
-                description: >
-                  Thickness of the fabric.
-            minItems: 4
+            minItems: 3
           units:
             items:
               - const: "-"
               - const: "-"
               - const: "-"
-              - const: m
-            minItems: 4
+            minItems: 3
           data:
             items:
               type: array
@@ -421,8 +417,7 @@ properties:
                 - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/face_corners"
-                - $ref: "#/definitions/length"
-              minItems: 4
+              minItems: 3
 
   # --------------------------------------------------------------------------
   # RIGID BODIES AND THE TUBES BETWEEN THEM
