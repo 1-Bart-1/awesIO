@@ -75,7 +75,12 @@ def connectivity_preimage(structure):
             for _, (a, b), *_ in rows(structure, paired)
         )
 
-    return section("points", "segments") + section("bodies", "tubes")
+    point_number = {row[0]: i + 1 for i, row in enumerate(rows(structure, "points"))}
+    faces = rows(structure, "canopy_faces")
+    corners = "".join(",".join(str(point_number[point]) for point in face[2]) + ";"
+                      for face in faces)
+    return (section("points", "segments") + section("bodies", "tubes")
+            + f"{len(faces)};{corners}")
 
 
 def test_connectivity_sha_hashes_the_preimage(structure):
@@ -88,8 +93,9 @@ def test_the_documented_preimage_is_what_the_rule_produces():
     three_in_a_row = {"points": {"data": [["a"], ["b"], ["c"]]},
                       "segments": {"data": [["s1", ("a", "b")], ["s2", ("b", "c")]]},
                       "bodies": {"data": [["x"], ["y"]]},
-                      "tubes": {"data": [["t1", ("x", "y")]]}}
-    assert connectivity_preimage(three_in_a_row) == "3;1,2;2,3;2;1,2;"
+                      "tubes": {"data": [["t1", ("x", "y")]]},
+                      "canopy_faces": {"data": [["f1", "c", ["a", "b", "c"]]]}}
+    assert connectivity_preimage(three_in_a_row) == "3;1,2;2,3;2;1,2;1;1,2,3;"
 
 
 def test_every_unit_the_schema_pins_is_spelled_on_the_conventions_page():
@@ -176,12 +182,15 @@ def test_every_reference_resolves_to_a_named_row(structure):
         assert set(endpoints) <= points
     for _, pair, *_ in rows(structure, "pulleys"):
         assert set(pair) <= segments
-    for _, _, members in rows(structure, "stations"):
-        assert set(members) <= points
+    for name, wing, _, members in rows(structure, "stations"):
+        assert wing in names("wings") and set(members) <= points, name
     for _, start, end, members in rows(structure, "tethers"):
         assert {start, end} <= points and set(members) <= segments
     for _, pair, *_ in rows(structure, "tubes"):
         assert set(pair) <= bodies
+    with_a_canopy = {name for name, material, *_ in rows(structure, "wings") if material}
+    for name, wing, corners, *_ in rows(structure, "canopy_faces"):
+        assert wing in with_a_canopy and set(corners) <= points, name
 
 
 @pytest.mark.parametrize(
@@ -211,7 +220,9 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["pulleys"]["data"].append(
              ["p1", ["seg_1", "seg_2"], "DYNAMIC", 1.4])),
         ("a station holding a bare point name",
-         lambda d: d["stations"]["data"][0].__setitem__(2, "le_left")),
+         lambda d: d["stations"]["data"][0].__setitem__(3, "le_left")),
+        ("a station without its wing",
+         lambda d: d["stations"]["data"][0].__setitem__(1, None)),
         ("a body inertia given as principal moments",
          lambda d: d["bodies"]["data"][0].__setitem__(5, [1.0, 1.0, 1.0])),
         ("a three-component body frame",
@@ -262,6 +273,20 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: append_column(d["segments"], "youngs_modulus", 1.1e11)),
         ("an appended column with an empty unit",
          lambda d: append_column(d["segments"], "youngs_modulus", 1.1e11, unit="")),
+        ("a canopy face with two corners",
+         lambda d: d["canopy_faces"]["data"][0][2].__delitem__(slice(2))),
+        ("a canopy face with a repeated corner",
+         lambda d: d["canopy_faces"]["data"][0][2].__setitem__(
+             1, d["canopy_faces"]["data"][0][2][0])),
+        ("a segment from a point to itself",
+         lambda d: d["segments"]["data"][0][1].__setitem__(
+             1, d["segments"]["data"][0][1][0])),
+        ("a canopy face with five corners",
+         lambda d: d["canopy_faces"]["data"][0][2].append("wing_le_8")),
+        ("a canopy material given as a number",
+         lambda d: d["wings"]["data"][0].__setitem__(1, 42)),
+        ("a canopy face without its wing",
+         lambda d: d["canopy_faces"]["data"][0].__setitem__(1, None)),
     ],
 )
 def test_malformed_structures_are_rejected(beam, label, mutate):
@@ -271,10 +296,17 @@ def test_malformed_structures_are_rejected(beam, label, mutate):
 
 def test_optional_blocks_may_be_absent(structure):
     """An absent optional block means the same as an empty one."""
-    for block in ("stations", "pulleys", "tethers", "winches", "bodies", "tubes"):
+    for block in ("stations", "pulleys", "tethers", "winches", "bodies", "tubes",
+                  "wings", "canopy_faces"):
         structure.pop(block, None)
     for row in structure["points"]["data"]:
         row[2] = None
+    assert_valid(structure)
+
+
+def test_a_wing_may_have_no_canopy(structure):
+    structure["wings"]["data"][0][1] = None
+    structure.pop("canopy_faces")
     assert_valid(structure)
 
 
@@ -282,3 +314,4 @@ def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     """Blocks are addressed by header, so appended columns must not break v1.0."""
     append_column(structure["segments"], "youngs_modulus", 1.1e11, unit="Pa")
     assert_valid(structure)
+

@@ -2,9 +2,10 @@ AWE System Structure Schema
 ===========================
 
 The structure schema describes the **resolved structural definition** of an AWE
-system: the points, the segments, stations, pulleys, tethers and winches built on
-them, the rigid bodies, and the tubes between those bodies. Each component carries
-its own geometry and material, so a conforming file is a complete structural
+system: the points, the segments, pulleys, tethers and winches built on them, the
+wings with their stations and canopy faces, the rigid bodies, and the tubes between
+those bodies. Each component
+carries its own geometry and material, so a conforming file is a complete structural
 definition rather than a connectivity sketch.
 
 It is the layer :doc:`system_schema` leaves free-form — its ``wing_sections``,
@@ -48,9 +49,9 @@ so a file reads as a spreadsheet and rows reorder without rewriting indices:
      data:
        - [seg_1, [ground, tether_1], 10.0, 0.004, 724.0, 614600.0]
 
-What an element connects is one column holding a two-element tuple — a segment's
-``points``, a pulley's ``segments``, a tube's ``bodies`` — so the schema fixes that
-there are exactly two.
+What an element connects is one column holding a tuple of distinct names — two for a
+segment's ``points``, a pulley's ``segments`` and a tube's ``bodies``, three or four
+for a canopy face's ``points`` — so the schema fixes how many there are.
 
 The ``units`` row says which unit each column is in, so a file reads without the
 schema beside it. A block pins the unit of every column it requires, SI throughout
@@ -70,12 +71,15 @@ The core, and what a tool carries beside it
 
 A column earns its place in the core by having a reader outside the tool it came
 from; that test, and not whether the quantity is respectable, is what keeps one
-solver's settings out of every other tool's files. SAM's own ``wings``,
-``transforms`` and ``groups`` ride beside the core, while ``metadata`` and a table's
-own keys stay closed.
+solver's settings out of every other tool's files. SAM appends its own wing columns
+to ``wings``, and its ``transforms`` and ``groups`` ride beside the core, while
+``metadata`` and a table's own keys stay closed.
 
-Stations
---------
+Wings, their stations and their canopy
+---------------------------------------
+
+A document may hold several wings, so each station and each canopy face names the
+``wings`` row it belongs to.
 
 A **station** is a chordwise section of a wing, given by its points. They give the
 local chord, from which a reader derives the section's angle of attack — and, where
@@ -86,7 +90,20 @@ A station's **local twist** is the angle its chord has turned through about the 
 KA y axis from where the document places it, positive pitching the leading edge up.
 
 A station is not tied to the aerodynamic mesh: it may cover several of its panels.
-Station rows run from +y to -y of the wing's KA frame, left tip to right tip.
+A wing's station rows run from +y to -y of its KA frame, left tip to right tip.
+
+**A canopy is fabric meshed over existing points**, the way a ``.obj`` meshes faces
+over its vertices: its corners are rows of ``points``, never a second kind of point,
+so a bridle line ends on the same point the fabric does. A wing has at most one
+canopy, and its ``canopy_material`` is the one fabric all of it is made of, or null
+where it has none; each ``canopy_faces`` row is a triangle or quadrilateral of that
+canopy, its corners in order around it. What the fabric weighs and how it stretches,
+per unit area, belong to its material. Like a tube, a face names what it is rather
+than how it is modelled: a reader carries its load as a membrane or as springs along
+its edges.
+
+Until materials are part of this schema, ``canopy_material`` is a name the reader
+resolves, as a tube's ``law`` is.
 
 Bodies, and the tubes between them
 ----------------------------------
@@ -96,10 +113,14 @@ its own mass, and ``Q_KA_to_ENU`` the rotation from its own KA frame into the wo
 ``extra_mass`` and ``extra_inertia_KA`` are taken about that origin.
 
 Every mass in a document is extra mass, never a total: a reader adds what it
-derives. A point's ``extra_mass`` leaves out its segments, and a reader adds half of
-each attached segment's mass from their ``diameter``, ``density`` and ``l0``. A
-body's ``extra_mass`` and ``extra_inertia_KA`` leave out the points fixed to it,
-which a reader adds to the body.
+derives. A point's ``extra_mass`` leaves out its segments and canopy faces. A reader
+adds half of each attached segment's mass, from its ``diameter``, ``density`` and
+``l0``, and an equal share of each face the point is a corner of: the face's area
+times its material's areal density. A face's area is half the norm of the cross
+product of its diagonals, or of two edges for a triangle, which holds for a
+quadrilateral whose corners are not in one plane. A body's ``extra_mass`` and
+``extra_inertia_KA`` leave out the points fixed to it, which a reader adds to the
+body.
 
 ``extra_inertia_KA`` is the full tensor in the body's KA axes. Where those are its
 principal axes the tensor is diagonal; a wing body's KA axes are fixed by the wing's
@@ -152,17 +173,22 @@ soft wing, placed at 70° elevation. They share the bridle, the tether and the s
 winch, and differ in what carries the wing:
 
 ``v3_psm_structure.yml``
-   The particle lattice: 44 points, 95 segments and 6 pulleys carry the wing's shape,
-   and its mass sits on those points. No bodies and no tubes — the lattice *is* the
-   structure.
+   The particle lattice: 44 points, 68 segments and 6 pulleys carry the wing's shape,
+   and its mass sits on those points. Nine canopy faces span the leading and trailing
+   edges between the struts. No bodies and no tubes — the lattice *is* the structure.
 
 ``v3_beam_structure.yml``
    The beam wing: 22 rigid bodies, twelve down the leading-edge tube and ten down the
    trailing edge, joined by eleven ``le_beam_*`` tubes along the leading edge and ten
-   ``strut_beam_*`` from front to back. The canopy's 150 points ride a twenty-third,
-   ``KINEMATIC`` body whose frame is the wing's own and whose mass is zero, since the
-   wing's 11 kg are already on the other 22. Under them the bridle and one tether, in
-   a document of 220 points over 366 segments.
+   ``strut_beam_*`` from front to back. The canopy is 90 faces over the tube points
+   and 110 ``wing_ctrl_*`` points, which ride a twenty-third, ``KINEMATIC`` body with
+   40 of the bridle's points; its frame is the wing's own and its mass is zero, since
+   the wing's 11 kg are already on the other 22. Under them the bridle and one tether,
+   in a document of 220 points over 95 segments.
+
+``v3_canopy`` is the 170 g/m² fabric of awegroup/TUDELFT_V3_KITE. The wing's
+``extra_mass`` still includes it, until materials give ``v3_canopy`` that areal
+density to derive it from.
 
 Columns
 -------
