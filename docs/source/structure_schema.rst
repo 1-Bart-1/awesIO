@@ -170,17 +170,18 @@ soft wing, placed at 70° elevation. They share the bridle, the tether and the s
 winch, and differ in what carries the wing:
 
 ``v3_psm_structure.yml``
-   The particle lattice: 44 points, 95 segments and 6 pulleys carry the wing's shape,
-   and its mass sits on those points. No bodies and no tubes — the lattice *is* the
-   structure.
+   The particle lattice: 44 points, 68 segments and 6 pulleys carry the wing's shape,
+   and its mass sits on those points. Nine canopy faces span the leading and trailing
+   edges between the struts. No bodies and no tubes — the lattice *is* the structure.
 
 ``v3_beam_structure.yml``
    The beam wing: 22 rigid bodies, twelve down the leading-edge tube and ten down the
    trailing edge, joined by eleven ``le_beam_*`` tubes along the leading edge and ten
-   ``strut_beam_*`` from front to back. The canopy's 150 points ride a twenty-third,
-   ``KINEMATIC`` body whose frame is the wing's own and whose mass is zero, since the
-   wing's 11 kg are already on the other 22. Under them the bridle and one tether, in
-   a document of 220 points over 366 segments.
+   ``strut_beam_*`` from front to back. The canopy is 90 faces over the tube points
+   and 110 ``wing_ctrl_*`` points, which ride a twenty-third, ``KINEMATIC`` body with
+   40 of the bridle's points; its frame is the wing's own and its mass is zero, since
+   the wing's 11 kg are already on the other 22. Under them the bridle and one tether,
+   in a document of 220 points over 95 segments.
 
 Columns
 -------

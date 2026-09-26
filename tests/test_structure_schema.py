@@ -34,17 +34,6 @@ def rows(structure, block):
     return structure.get(block, {"data": []})["data"]
 
 
-def with_a_canopy(structure):
-    """Span one quadrilateral canopy face over the structure's first four points."""
-    corners = [row[0] for row in structure["points"]["data"][:4]]
-    structure["canopies"] = {"headers": ["name", "material"], "units": ["-", "-"],
-                             "data": [["canopy", "ripstop"]]}
-    structure["canopy_faces"] = {"headers": ["name", "canopy", "points", "thickness"],
-                                 "units": ["-", "-", "-", "m"],
-                                 "data": [["face_1", "canopy", corners, 1e-4]]}
-    return structure
-
-
 def a_point_on_a_body(structure):
     """Most rows leave `body` null; breaking that column needs one that does not."""
     return next(row for row in rows(structure, "points") if row[2] is not None)
@@ -282,23 +271,23 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("an appended column with an empty unit",
          lambda d: append_column(d["segments"], "youngs_modulus", 1.1e11, unit="")),
         ("a canopy face with two corners",
-         lambda d: with_a_canopy(d)["canopy_faces"]["data"][0][2].__delitem__(slice(2))),
+         lambda d: d["canopy_faces"]["data"][0][2].__delitem__(slice(2))),
         ("a canopy face with a repeated corner",
-         lambda d: with_a_canopy(d)["canopy_faces"]["data"][0][2].__setitem__(
-             1, d["points"]["data"][0][0])),
+         lambda d: d["canopy_faces"]["data"][0][2].__setitem__(
+             1, d["canopy_faces"]["data"][0][2][0])),
         ("a segment from a point to itself",
          lambda d: d["segments"]["data"][0][1].__setitem__(
              1, d["segments"]["data"][0][1][0])),
         ("a canopy face with five corners",
-         lambda d: with_a_canopy(d)["canopy_faces"]["data"][0][2].append("wing_le_8")),
+         lambda d: d["canopy_faces"]["data"][0][2].append("wing_le_8")),
         ("negative canopy thickness",
-         lambda d: with_a_canopy(d)["canopy_faces"]["data"][0].__setitem__(3, -1e-4)),
+         lambda d: d["canopy_faces"]["data"][0].__setitem__(3, -1e-4)),
         ("a canopy thickness in mm",
-         lambda d: with_a_canopy(d)["canopy_faces"]["units"].__setitem__(3, "mm")),
+         lambda d: d["canopy_faces"]["units"].__setitem__(3, "mm")),
         ("a canopy material given as a number",
-         lambda d: with_a_canopy(d)["canopies"]["data"][0].__setitem__(1, 42)),
+         lambda d: d["canopies"]["data"][0].__setitem__(1, 42)),
         ("a canopy face without its canopy",
-         lambda d: with_a_canopy(d)["canopy_faces"]["data"][0].__setitem__(1, None)),
+         lambda d: d["canopy_faces"]["data"][0].__setitem__(1, None)),
     ],
 )
 def test_malformed_structures_are_rejected(beam, label, mutate):
@@ -321,6 +310,3 @@ def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     append_column(structure["segments"], "youngs_modulus", 1.1e11, unit="Pa")
     assert_valid(structure)
 
-
-def test_a_canopy_meshed_over_existing_points_is_valid(beam):
-    assert_valid(with_a_canopy(beam))
