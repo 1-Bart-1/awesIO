@@ -39,18 +39,23 @@ header, and spells each unit one way:
      - area
    * - ``kg``
      - mass
+   * - ``kg/m^2``
+     - areal density
    * - ``kg/m^3``
      - density
    * - ``kg*m^2``
      - moment of inertia
    * - ``N``
-     - force, and axial stiffness times length
+     - force
+   * - ``N/m``
+     - force per length, such as a membrane stiffness
    * - ``Pa``
      - pressure
    * - ``deg``
      - angle
    * - ``-``
-     - dimensionless, and a column holding names, types or references
+     - dimensionless, and a column holding names, types, references or a law's
+       parameters
 
 A unit not listed is written the same way: SI symbols joined by ``*`` and ``/``,
 powers with ``^``, such as ``m/s`` or ``N*m^2``. A schema pins the unit of every

@@ -5,8 +5,9 @@ The structure schema describes the **resolved structural definition** of an AWE
 system: the points, the segments, pulleys, tethers and winches built on them, the
 wings with their stations and canopy faces, the rigid bodies, and the tubes between
 those bodies. Each component
-carries its own geometry and material, so a conforming file is a complete structural
-definition rather than a connectivity sketch.
+carries its own geometry and names its material, whose stiffness law the file spells
+out, so a conforming file is a complete structural definition rather than a
+connectivity sketch.
 
 It is the layer :doc:`system_schema` leaves free-form — its ``wing_sections``,
 ``bridle_nodes``, ``bridle_lines`` and ``bridle_connections`` blocks are bare
@@ -44,10 +45,10 @@ so a file reads as a spreadsheet and rows reorder without rewriting indices:
 .. code-block:: yaml
 
    segments:
-     headers: [name, points, l0, diameter, density, unit_stiffness]
-     units: [-, -, m, m, kg/m^3, N]
+     headers: [name, points, l0, diameter, material]
+     units: [-, -, m, m, -]
      data:
-       - [seg_1, [ground, tether_1], 10.0, 0.004, 724.0, 614600.0]
+       - [seg_1, [ground, tether_1], 10.0, 0.004, dyneema]
 
 What an element connects is one column holding a tuple of distinct names — two for a
 segment's ``points``, a pulley's ``segments`` and a tube's ``bodies``, three or four
@@ -74,6 +75,35 @@ from; that test, and not whether the quantity is respectable, is what keeps one
 solver's settings out of every other tool's files. SAM appends its own wing columns
 to ``wings``, and its ``transforms`` and ``groups`` ride beside the core, while
 ``metadata`` and a table's own keys stay closed.
+
+Materials and their laws
+------------------------
+
+Segments, tubes and a wing's canopy each name a row of ``materials`` rather than
+carry a stiffness of their own. A material is a stiffness ``law`` and that law's
+``parameters``, one mapping in one cell:
+
+.. code-block:: yaml
+
+   materials:
+     headers: [name, law, parameters]
+     units: [-, -, -]
+     data:
+       - [dyneema, linear, {density: 970.0, youngs_modulus: 5.5e+10}]
+       - [ripstop, membrane, {areal_density: 0.17, membrane_stiffness: 1000.0}]
+
+The schema defines every law it accepts: ``linear`` for a segment, ``membrane`` for a
+canopy and ``breukels2011`` for a tube. Each fixes the names of its parameters and
+their SI units and states the curve they describe, so a reader that has never met a
+law evaluates it from the schema alone. ``breukels2011`` carries its nineteen
+correlation constants rather than standing for them, so a refit of the same
+correlations is a new set of numbers under the same law. A law the schema does not
+define does not validate, and a reader that does not implement one fails on the
+element naming it rather than substituting another.
+
+The parameters share one cell because the schema reads a row by position while a
+column is found by its header: an ``if``/``then`` on ``law`` checks the cell beside
+it, and could not check columns appended after it.
 
 Wings, their stations and their canopy
 ---------------------------------------
@@ -102,9 +132,6 @@ per unit area, belong to its material. Like a tube, a face names what it is rath
 than how it is modelled: a reader carries its load as a membrane or as springs along
 its edges.
 
-Until materials are part of this schema, ``canopy_material`` is a name the reader
-resolves, as a tube's ``law`` is.
-
 Bodies, and the tubes between them
 ----------------------------------
 
@@ -114,9 +141,9 @@ its own mass, and ``Q_KA_to_ENU`` the rotation from its own KA frame into the wo
 
 Every mass in a document is extra mass, never a total: a reader adds what it
 derives. A point's ``extra_mass`` leaves out its segments and canopy faces. A reader
-adds half of each attached segment's mass, from its ``diameter``, ``density`` and
-``l0``, and an equal share of each face the point is a corner of: the face's area
-times its material's areal density. A face's area is half the norm of the cross
+adds half of each attached segment's mass, from its ``diameter``, its ``l0`` and its
+material's density, and an equal share of each face the point is a corner of: the
+face's area times its material's areal density. A face's area is half the norm of the cross
 product of its diagonals, or of two edges for a triangle, which holds for a
 quadrilateral whose corners are not in one plane. A body's ``extra_mass`` and
 ``extra_inertia_KA`` leave out the points fixed to it, which a reader adds to the
@@ -129,12 +156,8 @@ geometry, so its tensor in general is not.
 **A tube joins two bodies**, named in its ``bodies`` column and never as points.
 Their positions fix its ends and so its rest length, and one ``diameter`` holds for
 the whole element. How it curves between those ends belongs to the element: a
-Timoshenko beam carries curvature of its own, and only a shape its ``law`` cannot
-hold — or a taper — needs a chain of tubes.
-
-How a law is parameterised is not yet part of this schema, so a file naming one is
-portable only between readers that know the name. A segment's ``unit_stiffness`` takes
-the same freedom: a number is the linear value, a string names a law.
+Timoshenko beam carries curvature of its own, and only a shape its material's law
+cannot hold — or a taper — needs a chain of tubes.
 
 Pairing with a state log
 ------------------------
@@ -186,9 +209,11 @@ winch, and differ in what carries the wing:
    the wing's 11 kg are already on the other 22. Under them the bridle and one tether,
    in a document of 220 points over 95 segments.
 
-``v3_canopy`` is the 170 g/m² fabric of awegroup/TUDELFT_V3_KITE. The wing's
-``extra_mass`` still includes it, until materials give ``v3_canopy`` that areal
-density to derive it from.
+``v3_canopy`` stands in for V3Kite's canopy springs: their 1000 N/m is its
+``membrane_stiffness``, and its ``areal_density`` is zero because the wing's
+``extra_mass`` already holds the 170 g/m² fabric of awegroup/TUDELFT_V3_KITE, as
+V3Kite carries it. ``v3_tube`` holds the Breukels constants SymbolicAWEModels.jl
+evaluates.
 
 Columns
 -------
