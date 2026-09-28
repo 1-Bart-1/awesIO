@@ -176,18 +176,21 @@ def test_every_reference_resolves_to_a_named_row(structure):
         return {row[0] for row in rows(structure, block)}
 
     points, segments, bodies = names("points"), names("segments"), names("bodies")
+    law = {name: law for name, law, *_ in rows(structure, "materials")}
     for name, _, body, *_ in rows(structure, "points"):
         assert body is None or body in bodies, name
-    for _, endpoints, *_ in rows(structure, "segments"):
-        assert set(endpoints) <= points
+    for name, endpoints, _, _, material, *_ in rows(structure, "segments"):
+        assert set(endpoints) <= points and law.get(material) == "linear", name
     for _, pair, *_ in rows(structure, "pulleys"):
         assert set(pair) <= segments
     for name, wing, _, members in rows(structure, "stations"):
         assert wing in names("wings") and set(members) <= points, name
     for _, start, end, members in rows(structure, "tethers"):
         assert {start, end} <= points and set(members) <= segments
-    for _, pair, *_ in rows(structure, "tubes"):
-        assert set(pair) <= bodies
+    for name, pair, _, _, material, *_ in rows(structure, "tubes"):
+        assert set(pair) <= bodies and law.get(material) == "breukels2011", name
+    for name, material, *_ in rows(structure, "wings"):
+        assert material is None or law.get(material) == "membrane", name
     with_a_canopy = {name for name, material, *_ in rows(structure, "wings") if material}
     for name, wing, corners, *_ in rows(structure, "canopy_faces"):
         assert wing in with_a_canopy and set(corners) <= points, name
@@ -214,8 +217,24 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["segments"]["data"][0][1].append("tether_2")),
         ("negative segment length",
          lambda d: d["segments"]["data"][0].__setitem__(2, -1.0)),
-        ("negative unit stiffness",
-         lambda d: d["segments"]["data"][0].__setitem__(5, -1.0)),
+        ("a segment's material given as a number",
+         lambda d: d["segments"]["data"][0].__setitem__(4, 970.0)),
+        ("a law this schema does not define",
+         lambda d: d["materials"]["data"][0].__setitem__(1, "hooke")),
+        ("a linear material without its Young's modulus",
+         lambda d: d["materials"]["data"][0][2].pop("youngs_modulus")),
+        ("a negative Young's modulus",
+         lambda d: d["materials"]["data"][0][2].update(youngs_modulus=-5.5e10)),
+        ("a membrane material holding a line's parameters",
+         lambda d: d["materials"]["data"][2].__setitem__(2, d["materials"]["data"][0][2])),
+        ("a breukels2011 material without C19",
+         lambda d: d["materials"]["data"][3][2].pop("C19")),
+        ("a breukels2011 material with a constant it does not define",
+         lambda d: d["materials"]["data"][3][2].update(C20=1.0)),
+        ("a material whose parameters are a list",
+         lambda d: d["materials"]["data"][0].__setitem__(2, [970.0, 5.5e10])),
+        ("missing materials block",
+         lambda d: d.pop("materials")),
         ("efficiency above one",
          lambda d: d["pulleys"]["data"].append(
              ["p1", ["seg_1", "seg_2"], "DYNAMIC", 1.4])),
@@ -233,7 +252,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["tubes"]["data"][0][1].append("kcu")),
         ("negative tube pressure",
          lambda d: d["tubes"]["data"][0].__setitem__(3, -1.0)),
-        ("a tube whose law is a number",
+        ("a tube's material given as a number",
          lambda d: d["tubes"]["data"][0].__setitem__(4, 42)),
         ("short segment row",
          lambda d: d["segments"]["data"][0].pop()),
@@ -254,9 +273,9 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("a non-string appended header",
          lambda d: d["segments"]["headers"].append(42)),
         ("a row shorter than its appended headers",
-         lambda d: append_header(d["segments"], "youngs_modulus", "Pa")),
+         lambda d: append_header(d["segments"], "damping_per_stiffness", "s")),
         ("a row longer than its headers",
-         lambda d: d["segments"]["data"][0].append(1.1e11)),
+         lambda d: d["segments"]["data"][0].append(0.002)),
         ("an undeclared key inside metadata",
          lambda d: d["metadata"].update(tool="SAM")),
         ("an undeclared key beside a table's headers, units and data",
@@ -270,9 +289,9 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("a required column without its unit",
          lambda d: d["points"]["units"].pop()),
         ("an appended column without its unit",
-         lambda d: append_column(d["segments"], "youngs_modulus", 1.1e11)),
+         lambda d: append_column(d["segments"], "damping_per_stiffness", 0.002)),
         ("an appended column with an empty unit",
-         lambda d: append_column(d["segments"], "youngs_modulus", 1.1e11, unit="")),
+         lambda d: append_column(d["segments"], "damping_per_stiffness", 0.002, unit="")),
         ("a canopy face with two corners",
          lambda d: d["canopy_faces"]["data"][0][2].__delitem__(slice(2))),
         ("a canopy face with a repeated corner",
@@ -304,6 +323,12 @@ def test_optional_blocks_may_be_absent(structure):
     assert_valid(structure)
 
 
+def test_a_law_this_schema_does_not_define_is_named_in_the_failure(beam):
+    beam["materials"]["data"][0][1] = "hooke"
+    with pytest.warns(UserWarning, match="'hooke' is not one of"):
+        validate(beam)
+
+
 def test_a_wing_may_have_no_canopy(structure):
     structure["wings"]["data"][0][1] = None
     structure.pop("canopy_faces")
@@ -312,6 +337,6 @@ def test_a_wing_may_have_no_canopy(structure):
 
 def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     """Blocks are addressed by header, so appended columns must not break v1.0."""
-    append_column(structure["segments"], "youngs_modulus", 1.1e11, unit="Pa")
+    append_column(structure["segments"], "damping_per_stiffness", 0.002, unit="s")
     assert_valid(structure)
 

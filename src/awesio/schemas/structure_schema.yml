@@ -5,8 +5,9 @@ description: >
   Resolved structural definition of an AWE system: the points, the segments,
   pulleys, tethers and winches built on them, the wings with their stations and
   canopy faces, the rigid bodies, and the tubes between those bodies. Each
-  component carries its own geometry and material, so a file is a complete
-  structural definition rather than a connectivity sketch.
+  component carries its own geometry and names its material, whose stiffness
+  law the file spells out, so a file is a complete structural definition rather
+  than a connectivity sketch.
 
   Fully resolved and expanded — no variable substitution, no segment counts left
   to expand, every component explicit — so a file is readable with nothing
@@ -31,6 +32,7 @@ description: >
 type: object
 required:
   - metadata
+  - materials
   - points
   - segments
 
@@ -84,6 +86,60 @@ properties:
           reader that gets this wrong sees every file as a mismatch.
         pattern: '^[0-9a-f]{64}$'
     additionalProperties: false
+
+  # --------------------------------------------------------------------------
+  # MATERIALS
+  # --------------------------------------------------------------------------
+  materials:
+    description: >
+      What the elements are made of. A material is its stiffness `law` and that
+      law's `parameters`, which fix how it deforms and, for a line or a fabric,
+      what it weighs. Each law fixes the names and units of its parameters. A
+      reader that does not implement a material's law cannot build the elements
+      naming it.
+    allOf:
+      - $ref: "#/definitions/table"
+      - properties:
+          headers:
+            items:
+              - const: name
+                description: >
+                  Unique name of the material.
+              - const: law
+                description: >
+                  The stiffness law: `linear` for a line, `membrane` for canopy
+                  fabric, `breukels2011` for an inflated tube.
+              - const: parameters
+                description: >
+                  The law's parameters, by name, in the units the law gives them.
+            minItems: 3
+          units:
+            items:
+              - const: "-"
+              - const: "-"
+              - const: "-"
+            minItems: 3
+          data:
+            items:
+              type: array
+              items:
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/law"
+                - type: object
+              minItems: 3
+              allOf:
+                - if:
+                    items: [true, const: linear]
+                  then:
+                    items: [true, true, $ref: "#/definitions/linear_parameters"]
+                - if:
+                    items: [true, const: membrane]
+                  then:
+                    items: [true, true, $ref: "#/definitions/membrane_parameters"]
+                - if:
+                    items: [true, const: breukels2011]
+                  then:
+                    items: [true, true, $ref: "#/definitions/breukels2011_parameters"]
 
   # --------------------------------------------------------------------------
   # POINTS AND THE ELEMENTS BUILT ON THEM
@@ -163,24 +219,19 @@ properties:
                   Unstretched length.
               - const: diameter
                 description: >
-                  Diameter of the line, for its mass and drag.
-              - const: density
+                  Diameter of the line, for its mass, drag and cross-section.
+              - const: material
                 description: >
-                  Density of the line's material.
-              - const: unit_stiffness
-                description: >
-                  Axial stiffness times unstretched length, or the name of a
-                  nonlinear law.
-            minItems: 6
+                  The `linear` material the line is made of.
+            minItems: 5
           units:
             items:
               - const: "-"
               - const: "-"
               - const: m
               - const: m
-              - const: kg/m^3
-              - const: N
-            minItems: 6
+              - const: "-"
+            minItems: 5
           data:
             items:
               type: array
@@ -189,9 +240,8 @@ properties:
                 - $ref: "#/definitions/name_pair"
                 - $ref: "#/definitions/length"
                 - $ref: "#/definitions/length"
-                - $ref: "#/definitions/density"
-                - $ref: "#/definitions/rigidity"
-              minItems: 6
+                - $ref: "#/definitions/component_name"
+              minItems: 5
 
   stations:
     description: >
@@ -375,8 +425,8 @@ properties:
                   Unique name of the wing.
               - const: canopy_material
                 description: >
-                  The fabric every face of the wing's canopy is made of, or null
-                  where the wing has no canopy.
+                  The `membrane` material every face of the wing's canopy is made
+                  of, or null where the wing has no canopy.
             minItems: 2
           units:
             items:
@@ -388,9 +438,7 @@ properties:
               type: array
               items:
                 - $ref: "#/definitions/component_name"
-                - oneOf:
-                    - $ref: "#/definitions/model_name"
-                    - type: "null"
+                - $ref: "#/definitions/optional_name"
               minItems: 2
 
   canopy_faces:
@@ -489,8 +537,8 @@ properties:
     description: >
       Inflated beam elements between two bodies, whose positions fix the
       element's ends and so its rest length. How it curves between those ends
-      belongs to the element: only a shape its `law` cannot hold, or a taper, is
-      a chain of tubes.
+      belongs to the element: only a shape its material's law cannot hold, or a
+      taper, is a chain of tubes.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -508,9 +556,10 @@ properties:
               - const: pressure
                 description: >
                   Inflation pressure.
-              - const: law
+              - const: material
                 description: >
-                  The stiffness law the element's rigidities are derived from.
+                  The `breukels2011` material the element's rigidities are
+                  derived from, at its diameter and pressure.
             minItems: 5
           units:
             items:
@@ -528,7 +577,7 @@ properties:
                 - $ref: "#/definitions/name_pair"
                 - $ref: "#/definitions/length"
                 - $ref: "#/definitions/non_negative"
-                - $ref: "#/definitions/model_name"
+                - $ref: "#/definitions/component_name"
               minItems: 5
 
 additionalProperties: true
@@ -644,11 +693,6 @@ definitions:
     type: number
     minimum: 0
 
-  density:
-    description: Material density.
-    type: number
-    minimum: 0
-
   non_negative:
     type: number
     minimum: 0
@@ -657,25 +701,6 @@ definitions:
     type: number
     minimum: 0
     maximum: 1
-
-  rigidity:
-    description: >
-      A stiffness or rigidity. A number is the linear value in the unit its
-      column states. A string names a nonlinear law that the reader resolves to
-      a function of the corresponding strain, curvature or deflection; how such
-      a law is defined is not yet part of this schema, so a file using one is
-      portable only between readers that know the name.
-    oneOf:
-      - type: number
-        minimum: 0
-      - $ref: "#/definitions/model_name"
-
-  model_name:
-    description: >
-      Name of a model or law the reader resolves to an implementation, rather
-      than a component in this document.
-    type: string
-    minLength: 1
 
   dynamics_type:
     description: >
@@ -688,3 +713,74 @@ definitions:
       - STATIC
       - BODY_STATIC
       - KINEMATIC
+
+  # ============================================================================
+  # STIFFNESS LAWS
+  # ============================================================================
+  law:
+    description: >
+      A stiffness law this schema defines. `<law>_parameters` below gives the
+      parameters a material of that law holds.
+    type: string
+    enum:
+      - linear
+      - membrane
+      - breukels2011
+
+  linear_parameters:
+    description: >
+      `linear`: a line of cross-section A = π·diameter²/4 carries the axial force
+      youngs_modulus·A·ε at strain ε = (length − l0)/l0.
+    type: object
+    required:
+      - density
+      - youngs_modulus
+    properties:
+      density:
+        description: Mass per volume of the line [kg/m^3].
+        type: number
+        minimum: 0
+      youngs_modulus:
+        description: Young's modulus of the line [Pa].
+        type: number
+        minimum: 0
+    additionalProperties: false
+
+  membrane_parameters:
+    description: >
+      `membrane`: a fabric carries, per unit width, the in-plane force
+      membrane_stiffness·ε at strain ε.
+    type: object
+    required:
+      - areal_density
+      - membrane_stiffness
+    properties:
+      areal_density:
+        description: Mass per area of the fabric [kg/m^2].
+        type: number
+        minimum: 0
+      membrane_stiffness:
+        description: Young's modulus times thickness, E·t [N/m].
+        type: number
+        minimum: 0
+    additionalProperties: false
+
+  breukels2011_parameters:
+    description: >
+      `breukels2011`: the correlations Breukels (2011, TU Delft PhD thesis) fitted
+      for an inflated tube as a 1 m cantilever. C1…C19 are fitted for the radius
+      r = diameter/2 in m and the pressure p in bar, so a reader divides the
+      tube's pressure [Pa] by 1e5. Loaded at its tip, it deflects δ [m] under the
+      force F·(1 − exp(−(S/F)·δ)) [N], with F = (C1·r + C2)·p² + C3·r³ + C4 and
+      S = (C5·r⁵ + C6)·p + C7·r + C8, until it collapses at
+      δ = (C9·r⁴ + C10)·p + C11·r² + C12. Twisted at rate κ [1/m], it carries
+      the moment c1·atan(c2·κ) [N·m], with c1 = (C13·r + C14)·p + C15·r + C16 and
+      c2 = C17·r⁴·ln(p) + C18·r³ + C19. How a reader derives its element's
+      rigidities from these curves is its own model.
+    type: object
+    required: [C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15,
+               C16, C17, C18, C19]
+    additionalProperties:
+      type: number
+    propertyNames:
+      pattern: '^C([1-9]|1[0-9])$'
