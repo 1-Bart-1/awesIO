@@ -96,14 +96,9 @@ The schema defines every law it accepts: ``linear`` for a segment, ``membrane`` 
 canopy and ``breukels2011`` for a tube. Each fixes the names of its parameters and
 their SI units and states the curve they describe, so a reader that has never met a
 law evaluates it from the schema alone. ``breukels2011`` carries its nineteen
-correlation constants rather than standing for them, so a refit of the same
-correlations is a new set of numbers under the same law. A law the schema does not
+correlation constants rather than standing for them. A law the schema does not
 define does not validate, and a reader that does not implement one fails on the
 element naming it rather than substituting another.
-
-The parameters share one cell because the schema reads a row by position while a
-column is found by its header: an ``if``/``then`` on ``law`` checks the cell beside
-it, and could not check columns appended after it.
 
 Wings, their stations and their canopy
 ---------------------------------------
@@ -143,9 +138,9 @@ Every mass in a document is extra mass, never a total: a reader adds what it
 derives. A point's ``extra_mass`` leaves out its segments and canopy faces. A reader
 adds half of each attached segment's mass, from its ``diameter``, its ``l0`` and its
 material's density, and an equal share of each face the point is a corner of: the
-face's area times its material's areal density. A face's area is half the norm of the cross
-product of its diagonals, or of two edges for a triangle, which holds for a
-quadrilateral whose corners are not in one plane. A body's ``extra_mass`` and
+face's area times its material's areal density. A face's area is half the norm of
+the cross product of its diagonals, or of two edges for a triangle, which holds for
+a quadrilateral whose corners are not in one plane. A body's ``extra_mass`` and
 ``extra_inertia_KA`` leave out the points fixed to it, which a reader adds to the
 body.
 

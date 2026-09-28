@@ -180,7 +180,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
     for name, _, body, *_ in rows(structure, "points"):
         assert body is None or body in bodies, name
     for name, endpoints, _, _, material, *_ in rows(structure, "segments"):
-        assert set(endpoints) <= points and law[material] == "linear", name
+        assert set(endpoints) <= points and law.get(material) == "linear", name
     for _, pair, *_ in rows(structure, "pulleys"):
         assert set(pair) <= segments
     for name, wing, _, members in rows(structure, "stations"):
@@ -188,9 +188,9 @@ def test_every_reference_resolves_to_a_named_row(structure):
     for _, start, end, members in rows(structure, "tethers"):
         assert {start, end} <= points and set(members) <= segments
     for name, pair, _, _, material, *_ in rows(structure, "tubes"):
-        assert set(pair) <= bodies and law[material] == "breukels2011", name
+        assert set(pair) <= bodies and law.get(material) == "breukels2011", name
     for name, material, *_ in rows(structure, "wings"):
-        assert material is None or law[material] == "membrane", name
+        assert material is None or law.get(material) == "membrane", name
     with_a_canopy = {name for name, material, *_ in rows(structure, "wings") if material}
     for name, wing, corners, *_ in rows(structure, "canopy_faces"):
         assert wing in with_a_canopy and set(corners) <= points, name

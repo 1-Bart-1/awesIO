@@ -768,8 +768,9 @@ definitions:
   breukels2011_parameters:
     description: >
       `breukels2011`: the correlations Breukels (2011, TU Delft PhD thesis) fitted
-      for an inflated tube as a 1 m cantilever, at radius r = diameter/2 in m and
-      p = the tube's pressure in bar. Loaded at its tip, it deflects δ [m] under the
+      for an inflated tube as a 1 m cantilever. C1…C19 are fitted for the radius
+      r = diameter/2 in m and the pressure p in bar, so a reader divides the
+      tube's pressure [Pa] by 1e5. Loaded at its tip, it deflects δ [m] under the
       force F·(1 − exp(−(S/F)·δ)) [N], with F = (C1·r + C2)·p² + C3·r³ + C4 and
       S = (C5·r⁵ + C6)·p + C7·r + C8, until it collapses at
       δ = (C9·r⁴ + C10)·p + C11·r² + C12. Twisted at rate κ [1/m], it carries
