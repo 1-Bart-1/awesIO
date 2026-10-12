@@ -5,8 +5,8 @@ The structure schema describes the **resolved structural definition** of an AWE
 system: the points, the segments, pulleys, tethers and winches built on them, the
 wings with their stations and canopy faces, the rigid bodies, and the tubes between
 those bodies. Each component
-carries its own geometry and names its material, whose stiffness law the file spells
-out, so a conforming file is a complete structural definition rather than a
+carries its own geometry and names its material, whose stiffness law and parameters
+the file gives, so a conforming file is a complete structural definition rather than a
 connectivity sketch.
 
 It is the layer :doc:`system_schema` leaves free-form — its ``wing_sections``,
@@ -92,13 +92,12 @@ carry a stiffness of their own. A material is a stiffness ``law`` and that law's
        - [dyneema, linear, {density: 970.0, youngs_modulus: 5.5e+10}]
        - [ripstop, membrane, {areal_density: 0.17, membrane_stiffness: 1000.0}]
 
-The schema defines every law it accepts: ``linear`` for a segment, ``membrane`` for a
-canopy and ``breukels2011`` for a tube. Each fixes the names of its parameters and
-their SI units and states the curve they describe, so a reader that has never met a
-law evaluates it from the schema alone. ``breukels2011`` carries its nineteen
-correlation constants rather than standing for them. A law the schema does not
-define does not validate, and a reader that does not implement one fails on the
-element naming it rather than substituting another.
+The schema defines no law, so a material may use any one. A law is the name of a
+model its readers implement, and that model fixes the names and units of its
+parameters. The file carries every number the model needs, such as the nineteen
+correlation constants of a Breukels tube, rather than leaving them to the reader. A
+reader that does not implement a material's law fails on the elements naming it
+rather than substituting another.
 
 Wings, their stations and their canopy
 ---------------------------------------

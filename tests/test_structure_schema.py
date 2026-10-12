@@ -176,11 +176,11 @@ def test_every_reference_resolves_to_a_named_row(structure):
         return {row[0] for row in rows(structure, block)}
 
     points, segments, bodies = names("points"), names("segments"), names("bodies")
-    law = {name: law for name, law, *_ in rows(structure, "materials")}
+    materials = names("materials")
     for name, _, body, *_ in rows(structure, "points"):
         assert body is None or body in bodies, name
     for name, endpoints, _, _, material, *_ in rows(structure, "segments"):
-        assert set(endpoints) <= points and law.get(material) == "linear", name
+        assert set(endpoints) <= points and material in materials, name
     for _, pair, *_ in rows(structure, "pulleys"):
         assert set(pair) <= segments
     for name, wing, _, members in rows(structure, "stations"):
@@ -188,9 +188,9 @@ def test_every_reference_resolves_to_a_named_row(structure):
     for _, start, end, members in rows(structure, "tethers"):
         assert {start, end} <= points and set(members) <= segments
     for name, pair, _, _, material, *_ in rows(structure, "tubes"):
-        assert set(pair) <= bodies and law.get(material) == "breukels2011", name
+        assert set(pair) <= bodies and material in materials, name
     for name, material, *_ in rows(structure, "wings"):
-        assert material is None or law.get(material) == "membrane", name
+        assert material is None or material in materials, name
     with_a_canopy = {name for name, material, *_ in rows(structure, "wings") if material}
     for name, wing, corners, *_ in rows(structure, "canopy_faces"):
         assert wing in with_a_canopy and set(corners) <= points, name
@@ -219,18 +219,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["segments"]["data"][0].__setitem__(2, -1.0)),
         ("a segment's material given as a number",
          lambda d: d["segments"]["data"][0].__setitem__(4, 970.0)),
-        ("a law this schema does not define",
-         lambda d: d["materials"]["data"][0].__setitem__(1, "hooke")),
-        ("a linear material without its Young's modulus",
-         lambda d: d["materials"]["data"][0][2].pop("youngs_modulus")),
-        ("a negative Young's modulus",
-         lambda d: d["materials"]["data"][0][2].update(youngs_modulus=-5.5e10)),
-        ("a membrane material holding a line's parameters",
-         lambda d: d["materials"]["data"][2].__setitem__(2, d["materials"]["data"][0][2])),
-        ("a breukels2011 material without C19",
-         lambda d: d["materials"]["data"][3][2].pop("C19")),
-        ("a breukels2011 material with a constant it does not define",
-         lambda d: d["materials"]["data"][3][2].update(C20=1.0)),
+        ("a material with an empty law name",
+         lambda d: d["materials"]["data"][0].__setitem__(1, "")),
         ("a material whose parameters are a list",
          lambda d: d["materials"]["data"][0].__setitem__(2, [970.0, 5.5e10])),
         ("missing materials block",
@@ -323,10 +313,10 @@ def test_optional_blocks_may_be_absent(structure):
     assert_valid(structure)
 
 
-def test_a_law_this_schema_does_not_define_is_named_in_the_failure(beam):
-    beam["materials"]["data"][0][1] = "hooke"
-    with pytest.warns(UserWarning, match="'hooke' is not one of"):
-        validate(beam)
+def test_a_material_may_name_any_law_with_any_parameters(beam):
+    curve = {"strain": [0.0, 0.01], "force": [0.0, 80.0]}
+    beam["materials"]["data"][0][1:] = ["tabulated", curve]
+    assert_valid(beam)
 
 
 def test_a_wing_may_have_no_canopy(structure):
