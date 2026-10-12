@@ -54,7 +54,7 @@ header, and spells each unit one way:
    * - ``deg``
      - angle
    * - ``-``
-     - dimensionless, and a column holding names, types, references or a law's
+     - dimensionless, and a column holding names, flags, types, references or a law's
        parameters
 
 A unit not listed is written the same way: SI symbols joined by ``*`` and ``/``,

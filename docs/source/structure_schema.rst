@@ -76,6 +76,12 @@ solver's settings out of every other tool's files. SAM appends its own wing colu
 to ``wings``, and its ``transforms`` and ``groups`` ride beside the core, while
 ``metadata`` and a table's own keys stay closed.
 
+The core describes the kite, never how a solver treats it. A point is held in the
+world or free, and a point on a body moves with that body; whether a solver steps it
+dynamically, quasi-statically or not at all is that solver's setting. Drag, damping,
+what a line does in compression and a winch's drive are each one tool's model, so
+they ride as that tool's columns.
+
 Materials and their laws
 ------------------------
 
@@ -107,9 +113,9 @@ A document may hold several wings, so each station and each canopy face names th
 ``wings`` row it belongs to.
 
 A **station** is a chordwise section of a wing, given by its points. They give the
-local chord, from which a reader derives the section's angle of attack — and, where
-they trace the profile, its airfoil shape — and they are where the aerodynamic load
-of the span the station covers is put.
+local chord, from which a reader derives the section's angle of attack and, where
+they trace the profile, its airfoil shape. How the aerodynamic load reaches the
+points is the reader's coupling.
 
 A station's **local twist** is the angle its chord has turned through about the wing's
 KA y axis from where the document places it, positive pitching the leading edge up.
@@ -157,10 +163,10 @@ cannot hold — or a taper — needs a chain of tubes.
 Pairing with a state log
 ------------------------
 
-``metadata.connectivity_sha`` guards the pairing of a structure with a state log. Its
-preimage is spelled out on ``metadata.connectivity_sha`` in the schema below; the row
-numbers in it are **one-based**, so that a zero-based reader does not see every file
-as a mismatch.
+``metadata.connectivity_sha``, where a writer gives it, guards the pairing of a
+structure with a state log. Its preimage is spelled out on ``metadata.connectivity_sha``
+in the schema below; the row numbers in it are **one-based**, so that a zero-based
+reader does not see every file as a mismatch.
 
 Frames
 ------
@@ -199,10 +205,10 @@ winch, and differ in what carries the wing:
    The beam wing: 22 rigid bodies, twelve down the leading-edge tube and ten down the
    trailing edge, joined by eleven ``le_beam_*`` tubes along the leading edge and ten
    ``strut_beam_*`` from front to back. The canopy is 90 faces over the tube points
-   and 110 ``wing_ctrl_*`` points, which ride a twenty-third, ``KINEMATIC`` body with
-   40 of the bridle's points; its frame is the wing's own and its mass is zero, since
-   the wing's 11 kg are already on the other 22. Under them the bridle and one tether,
-   in a document of 220 points over 95 segments.
+   and 110 free ``wing_ctrl_*`` points. Under them the bridle and one tether, in a
+   document of 220 points over 95 segments. V3Kite carries the ``wing_ctrl_*`` points
+   and 40 of the bridle's on a massless frame of SymbolicAWEModels.jl's own, which
+   the document leaves out.
 
 ``v3_canopy`` stands in for V3Kite's canopy springs: their 1000 N/m is its
 ``membrane_stiffness``, and its ``areal_density`` is zero because the wing's

@@ -46,7 +46,6 @@ properties:
       - awesIO_version
       - schema
       - n_points
-      - connectivity_sha
     properties:
       name:
         type: string
@@ -68,9 +67,9 @@ properties:
       connectivity_sha:
         type: string
         description: >
-          Lowercase hex SHA-256 of the connectivity, so state recorded against
-          one structure is not silently replayed against another that indexes
-          differently.
+          Lowercase hex SHA-256 of the connectivity, for a writer pairing the
+          structure with state recorded against it, so that state is not
+          silently replayed against another structure that indexes differently.
 
           The preimage is ASCII and built in document order, in three
           sections: the number of points, then each segment's two endpoints as
@@ -155,29 +154,22 @@ properties:
                 description: >
                   Unique name of the point. A writer whose geometry is
                   index-keyed writes the index as a string, "1" upwards.
-              - const: type
+              - const: fixed
                 description: >
-                  STATIC: fixed in the world. DYNAMIC: free, moved by the forces
-                  on it. BODY_STATIC: fixed in the frame of the rigid body
-                  `body` names, moving with it and passing its force and moment
-                  on to it.
+                  True where the point is held in the world, false where it is
+                  free or moves with its `body`.
               - const: body
                 description: >
-                  The rigid body a BODY_STATIC point is fixed to; null for any
-                  other point.
+                  The rigid body the point is fixed in, moving with it and
+                  passing its force and moment on to it; null for a point of its
+                  own.
               - const: pos_ENU
                 description: >
                   Position in the world.
               - const: extra_mass
                 description: >
                   Mass the point carries beyond its segments and canopy faces.
-              - const: drag_area
-                description: >
-                  Cross-sectional area the point's drag acts on.
-              - const: drag_coefficient
-                description: >
-                  Drag coefficient referred to `drag_area`.
-            minItems: 7
+            minItems: 5
           units:
             items:
               - const: "-"
@@ -185,21 +177,21 @@ properties:
               - const: "-"
               - const: m
               - const: kg
-              - const: m^2
-              - const: "-"
-            minItems: 7
+            minItems: 5
           data:
             items:
               type: array
               items:
                 - $ref: "#/definitions/component_name"
-                - $ref: "#/definitions/dynamics_type"
+                - type: boolean
                 - $ref: "#/definitions/optional_name"
                 - $ref: "#/definitions/vec3"
                 - $ref: "#/definitions/non_negative"
-                - $ref: "#/definitions/non_negative"
-                - $ref: "#/definitions/non_negative"
-              minItems: 7
+              minItems: 5
+              if:
+                items: [true, const: true]
+              then:
+                items: [true, true, type: "null"]
 
   segments:
     description: Straight elastic elements between two points.
@@ -247,8 +239,7 @@ properties:
     description: >
       Chordwise sections of a wing. A station's points give the local chord,
       from which a reader derives the section's angle of attack and, where the
-      points trace the profile, its airfoil shape; the aerodynamic load of the
-      span the station covers is put onto those points. A station's local twist
+      points trace the profile, its airfoil shape. A station's local twist
       is the angle its chord has turned through about the wing's KA y axis from
       where the document places it, positive pitching the leading edge up. A
       station is not tied to the aerodynamic mesh. A wing's stations run from +y
@@ -264,32 +255,24 @@ properties:
               - const: wing
                 description: >
                   The wing the station is a section of.
-              - const: type
-                description: >
-                  DYNAMIC: the twist is a state, solved from the moments on the
-                  station. STATIC: the twist is a prescribed control input.
-                  KINEMATIC: the twist is prescribed by geometry, such as a flap
-                  hinged between two bodies.
               - const: points
                 description: >
                   The points the section is made of.
-            minItems: 4
+            minItems: 3
           units:
             items:
               - const: "-"
               - const: "-"
               - const: "-"
-              - const: "-"
-            minItems: 4
+            minItems: 3
           data:
             items:
               type: array
               items:
                 - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/component_name"
-                - $ref: "#/definitions/dynamics_type"
                 - $ref: "#/definitions/name_list"
-              minItems: 4
+              minItems: 3
 
   pulleys:
     allOf:
@@ -303,31 +286,25 @@ properties:
               - const: segments
                 description: >
                   The two segments the pulley trades length between.
-              - const: type
-                description: >
-                  DYNAMIC: how the length is split between the two segments is a
-                  state.
               - const: efficiency
                 description: >
                   Fraction of the line tension the pulley passes on; the rest
                   opposes travel.
-            minItems: 4
+            minItems: 3
           units:
             items:
               - const: "-"
               - const: "-"
               - const: "-"
-              - const: "-"
-            minItems: 4
+            minItems: 3
           data:
             items:
               type: array
               items:
                 - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/name_pair"
-                - $ref: "#/definitions/dynamics_type"
                 - $ref: "#/definitions/fraction"
-              minItems: 4
+              minItems: 3
 
   tethers:
     description: >
@@ -385,21 +362,13 @@ properties:
               - const: winch_point
                 description: >
                   The point the drum sits at.
-              - const: gear_ratio
-                description: >
-                  Gear ratio of the drive to the drum.
-              - const: drum_radius
-                description: >
-                  Radius of the drum.
-            minItems: 5
+            minItems: 3
           units:
             items:
               - const: "-"
               - const: "-"
               - const: "-"
-              - const: "-"
-              - const: m
-            minItems: 5
+            minItems: 3
           data:
             items:
               type: array
@@ -407,9 +376,7 @@ properties:
                 - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/name_list"
                 - $ref: "#/definitions/component_name"
-                - $ref: "#/definitions/non_negative"
-                - $ref: "#/definitions/length"
-              minItems: 5
+              minItems: 3
 
   wings:
     description: >
@@ -481,9 +448,9 @@ properties:
   # --------------------------------------------------------------------------
   bodies:
     description: >
-      Rigid bodies. A body's KA frame is oriented as docs/source/conventions.rst
-      defines `_KA` where the body has wing geometry, and as its writer likes
-      where it has no leading edge.
+      Rigid bodies, each free in six degrees of freedom. A body's KA frame is
+      oriented as docs/source/conventions.rst defines `_KA` where the body has
+      wing geometry, and as its writer likes where it has no leading edge.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -492,10 +459,6 @@ properties:
               - const: name
                 description: >
                   Unique name of the body.
-              - const: type
-                description: >
-                  DYNAMIC: free in six degrees of freedom. KINEMATIC: its pose
-                  is fitted to its points. STATIC: clamped to the world.
               - const: pos_ENU
                 description: >
                   The body's origin, the centre of its own mass, in the world.
@@ -511,27 +474,25 @@ properties:
                   KA axes. Principal moments are the case where the KA axes are
                   the principal axes and the tensor is diagonal; a tool that
                   carries no rotational inertia writes zeros.
-            minItems: 6
+            minItems: 5
           units:
             items:
-              - const: "-"
               - const: "-"
               - const: m
               - const: "-"
               - const: kg
               - const: kg*m^2
-            minItems: 6
+            minItems: 5
           data:
             items:
               type: array
               items:
                 - $ref: "#/definitions/component_name"
-                - $ref: "#/definitions/dynamics_type"
                 - $ref: "#/definitions/vec3"
                 - $ref: "#/definitions/quaternion"
                 - $ref: "#/definitions/non_negative"
                 - $ref: "#/definitions/matrix3"
-              minItems: 6
+              minItems: 5
 
   tubes:
     description: >
@@ -701,18 +662,6 @@ definitions:
     type: number
     minimum: 0
     maximum: 1
-
-  dynamics_type:
-    description: >
-      The dynamic model governing a component. DYNAMIC components carry
-      differential state and are solved by the dynamics; the others are
-      prescribed, holding no state but mutable between steps.
-    type: string
-    enum:
-      - DYNAMIC
-      - STATIC
-      - BODY_STATIC
-      - KINEMATIC
 
   # ============================================================================
   # STIFFNESS LAWS

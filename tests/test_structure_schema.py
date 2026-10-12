@@ -113,7 +113,7 @@ def test_n_points_agrees_with_the_points_block(structure):
 
 def test_body_frames_are_unit_quaternions(structure):
     """Draft-07 can hold `Q_KA_to_ENU` to four numbers but not to unit length."""
-    for name, _, _, frame, *_ in rows(structure, "bodies"):
+    for name, _, frame, *_ in rows(structure, "bodies"):
         assert math.isclose(math.hypot(*frame), 1.0, abs_tol=1e-12), name
 
 
@@ -125,43 +125,16 @@ def test_body_inertia_is_symmetric(structure):
                 assert inertia[i][j] == inertia[j][i], name
 
 
-def ka_axes_in_enu(frame):
-    """The KA x and y axes written in ENU: the first two columns of `Q_KA_to_ENU`."""
-    w, x, y, z = frame
-    return ([1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)],
-            [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)])
-
-
 def direction(start, end):
     """Unit vector from `start` to `end`."""
     span = [end_i - start_i for start_i, end_i in zip(start, end)]
     return [component / math.hypot(*span) for component in span]
 
 
-def wing_frame(beam):
-    """`Q_KA_to_ENU` of the beam kite's wing, the body its canopy rides."""
-    return next(row[3] for row in beam["bodies"]["data"] if row[1] == "KINEMATIC")
-
-
-def test_the_wing_frame_follows_the_wings_own_edges(beam):
-    """On a wing, KA x runs leading to trailing edge at mid-span, KA y tip to tip."""
-    pos = {row[0]: row[3] for row in beam["points"]["data"]}
-
-    def mid_span(edge):
-        return [(a + b) / 2 for a, b in zip(pos[f"wing_{edge}_5"], pos[f"wing_{edge}_6"])]
-
-    chord_axis, span_axis = ka_axes_in_enu(wing_frame(beam))
-    for axis, (start, end) in (
-            (chord_axis, (mid_span("le"), mid_span("te"))),
-            (span_axis, (pos["wing_le_10"], pos["wing_le_1"]))):
-        for got, want in zip(axis, direction(start, end)):
-            assert math.isclose(got, want, abs_tol=1e-9)
-
-
 def test_stations_run_from_the_left_tip_to_the_right(beam):
-    """Station rows run from +y to -y of the wing's KA frame."""
+    """Station rows run from +y to -y of the wing's KA frame, whose y runs tip to tip."""
     pos = {row[0]: row[3] for row in beam["points"]["data"]}
-    _, span_axis = ka_axes_in_enu(wing_frame(beam))
+    span_axis = direction(pos["wing_le_10"], pos["wing_le_1"])
 
     def spanwise(members):
         return sum(sum(a * b for a, b in zip(span_axis, pos[point])) for point in members)
@@ -183,7 +156,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
         assert set(endpoints) <= points and law.get(material) == "linear", name
     for _, pair, *_ in rows(structure, "pulleys"):
         assert set(pair) <= segments
-    for name, wing, _, members in rows(structure, "stations"):
+    for name, wing, members in rows(structure, "stations"):
         assert wing in names("wings") and set(members) <= points, name
     for _, start, end, members in rows(structure, "tethers"):
         assert {start, end} <= points and set(members) <= segments
@@ -203,15 +176,17 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["points"]["headers"].reverse()),
         ("points in the CAD frame",
          lambda d: d["points"]["headers"].__setitem__(3, "pos_CAD")),
-        ("unknown dynamics type",
-         lambda d: d["points"]["data"][0].__setitem__(1, "FLOATING")),
+        ("a point's fixed flag given as a solver's dynamics type",
+         lambda d: d["points"]["data"][0].__setitem__(1, "STATIC")),
+        ("a point both held in the world and on a body",
+         lambda d: a_point_on_a_body(d).__setitem__(1, True)),
         ("two-component pos_ENU",
          lambda d: d["points"]["data"][0].__setitem__(3, [0.0, 0.0])),
         ("a point's body given as an index",
          lambda d: a_point_on_a_body(d).__setitem__(2, 2)),
         ("a point with negative extra mass",
          lambda d: d["points"]["data"][3].__setitem__(4, -8.4)),
-        ("a point row without its drag coefficient",
+        ("a point row without its extra mass",
          lambda d: d["points"]["data"][3].pop()),
         ("a segment with three endpoints",
          lambda d: d["segments"]["data"][0][1].append("tether_2")),
@@ -237,15 +212,15 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d.pop("materials")),
         ("efficiency above one",
          lambda d: d["pulleys"]["data"].append(
-             ["p1", ["seg_1", "seg_2"], "DYNAMIC", 1.4])),
+             ["p1", ["seg_1", "seg_2"], 1.4])),
         ("a station holding a bare point name",
-         lambda d: d["stations"]["data"][0].__setitem__(3, "le_left")),
+         lambda d: d["stations"]["data"][0].__setitem__(2, "le_left")),
         ("a station without its wing",
          lambda d: d["stations"]["data"][0].__setitem__(1, None)),
         ("a body inertia given as principal moments",
-         lambda d: d["bodies"]["data"][0].__setitem__(5, [1.0, 1.0, 1.0])),
+         lambda d: d["bodies"]["data"][0].__setitem__(4, [1.0, 1.0, 1.0])),
         ("a three-component body frame",
-         lambda d: d["bodies"]["data"][0].__setitem__(3, [1.0, 0.0, 0.0])),
+         lambda d: d["bodies"]["data"][0].__setitem__(2, [1.0, 0.0, 0.0])),
         ("a tube naming a null body",
          lambda d: d["tubes"]["data"][0][1].__setitem__(1, None)),
         ("a tube joining three bodies",
@@ -320,6 +295,11 @@ def test_optional_blocks_may_be_absent(structure):
         structure.pop(block, None)
     for row in structure["points"]["data"]:
         row[2] = None
+    assert_valid(structure)
+
+
+def test_connectivity_sha_may_be_absent(structure):
+    structure["metadata"].pop("connectivity_sha")
     assert_valid(structure)
 
 
