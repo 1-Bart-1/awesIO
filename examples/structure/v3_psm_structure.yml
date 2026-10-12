@@ -170,10 +170,10 @@ tethers:
     - ["1", "1", "39", ["1_seg_1", "1_seg_2", "1_seg_3", "1_seg_4", "1_seg_5", "1_seg_6"]]
 
 winches:
-  headers: [name, tethers, winch_point]
-  units: [-, -, -]
+  headers: [name, tethers, winch_point, gear_ratio, drum_radius]
+  units: [-, -, -, -, m]
   data:
-    - ["1", ["1"], "39"]
+    - ["1", ["1"], "39", 1.0, 0.11]
 
 wings:
   headers: [name, canopy_material]

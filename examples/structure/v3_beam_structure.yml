@@ -391,10 +391,10 @@ tethers:
     - [tether, kcu, ground_anchor, [tether_seg_1, tether_seg_2, tether_seg_3, tether_seg_4, tether_seg_5, tether_seg_6]]
 
 winches:
-  headers: [name, tethers, winch_point]
-  units: [-, -, -]
+  headers: [name, tethers, winch_point, gear_ratio, drum_radius]
+  units: [-, -, -, -, m]
   data:
-    - [winch, [tether], ground_anchor]
+    - [winch, [tether], ground_anchor, 1.0, 0.11]
 
 wings:
   headers: [name, canopy_material]

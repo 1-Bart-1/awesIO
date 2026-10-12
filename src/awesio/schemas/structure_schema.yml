@@ -19,7 +19,7 @@ description: >
   What a block requires is the core: what a viewer and every solver need, and
   nothing a single tool needs, so it describes the kite and never how a solver
   treats it: whether a solver steps a point dynamically, quasi-statically or not
-  at all, its drag, damping, what a line does in compression and a winch's drive
+  at all, its drag, damping, what a line does in compression and a winch's motor
   are each one tool's model. A block may carry columns beyond the core, a tool's
   own among them; a reader addresses columns by header, never by position, and
   ignores a column it does not know. An absent optional block means the same as
@@ -365,13 +365,21 @@ properties:
               - const: winch_point
                 description: >
                   The point the drum sits at.
-            minItems: 3
+              - const: gear_ratio
+                description: >
+                  Gear ratio of the drive to the drum.
+              - const: drum_radius
+                description: >
+                  Radius of the drum.
+            minItems: 5
           units:
             items:
               - const: "-"
               - const: "-"
               - const: "-"
-            minItems: 3
+              - const: "-"
+              - const: m
+            minItems: 5
           data:
             items:
               type: array
@@ -379,7 +387,9 @@ properties:
                 - $ref: "#/definitions/component_name"
                 - $ref: "#/definitions/name_list"
                 - $ref: "#/definitions/component_name"
-              minItems: 3
+                - $ref: "#/definitions/non_negative"
+                - $ref: "#/definitions/length"
+              minItems: 5
 
   wings:
     description: >
