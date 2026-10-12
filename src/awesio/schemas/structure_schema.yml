@@ -17,8 +17,11 @@ description: >
 
   Every block is a headers/units/data table and every reference is by name.
   What a block requires is the core: what a viewer and every solver need, and
-  nothing a single tool needs. A block may carry columns beyond it, a tool's own
-  among them; a reader addresses columns by header, never by position, and
+  nothing a single tool needs, so it describes the kite and never how a solver
+  treats it: whether a solver steps a point dynamically, quasi-statically or not
+  at all, its drag, damping, what a line does in compression and a winch's drive
+  are each one tool's model. A block may carry columns beyond the core, a tool's
+  own among them; a reader addresses columns by header, never by position, and
   ignores a column it does not know. An absent optional block means the same as
   an empty one.
 
@@ -67,9 +70,9 @@ properties:
       connectivity_sha:
         type: string
         description: >
-          Lowercase hex SHA-256 of the connectivity, for a writer pairing the
-          structure with state recorded against it, so that state is not
-          silently replayed against another structure that indexes differently.
+          Lowercase hex SHA-256 of the connectivity. State recorded against the
+          structure can quote it, so that state is never replayed against a
+          structure that indexes differently.
 
           The preimage is ASCII and built in document order, in three
           sections: the number of points, then each segment's two endpoints as
@@ -448,7 +451,7 @@ properties:
   # --------------------------------------------------------------------------
   bodies:
     description: >
-      Rigid bodies, each free in six degrees of freedom. A body's KA frame is
+      Rigid bodies. A body's KA frame is
       oriented as docs/source/conventions.rst defines `_KA` where the body has
       wing geometry, and as its writer likes where it has no leading edge.
     allOf:

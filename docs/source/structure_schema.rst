@@ -76,12 +76,6 @@ solver's settings out of every other tool's files. SAM appends its own wing colu
 to ``wings``, and its ``transforms`` and ``groups`` ride beside the core, while
 ``metadata`` and a table's own keys stay closed.
 
-The core describes the kite, never how a solver treats it. A point is held in the
-world or free, and a point on a body moves with that body; whether a solver steps it
-dynamically, quasi-statically or not at all is that solver's setting. Drag, damping,
-what a line does in compression and a winch's drive are each one tool's model, so
-they ride as that tool's columns.
-
 Materials and their laws
 ------------------------
 
@@ -205,10 +199,11 @@ winch, and differ in what carries the wing:
    The beam wing: 22 rigid bodies, twelve down the leading-edge tube and ten down the
    trailing edge, joined by eleven ``le_beam_*`` tubes along the leading edge and ten
    ``strut_beam_*`` from front to back. The canopy is 90 faces over the tube points
-   and 110 free ``wing_ctrl_*`` points. Under them the bridle and one tether, in a
-   document of 220 points over 95 segments. V3Kite carries the ``wing_ctrl_*`` points
-   and 40 of the bridle's on a massless frame of SymbolicAWEModels.jl's own, which
-   the document leaves out.
+   and 110 ``wing_ctrl_*`` points, the 20 at the tubes riding on their bodies. Under
+   them the bridle and one tether, in a document of 220 points over 95 segments. The
+   bridle's 40 attachment points each ride on a body of the nearest tube, within
+   0.13 m of it; V3Kite carries them and the ``wing_ctrl_*`` points on a massless
+   frame of SymbolicAWEModels.jl's own, which the document leaves out.
 
 ``v3_canopy`` stands in for V3Kite's canopy springs: their 1000 N/m is its
 ``membrane_stiffness``, and its ``areal_density`` is zero because the wing's

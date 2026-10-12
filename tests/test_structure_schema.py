@@ -131,8 +131,33 @@ def direction(start, end):
     return [component / math.hypot(*span) for component in span]
 
 
+def test_every_point_is_joined_to_the_rest(structure):
+    """Segments, canopy faces, a point's body and tubes make the example one mechanism."""
+    neighbours = {}
+
+    def join(*names):
+        for name in names:
+            neighbours.setdefault(name, set()).update(names)
+
+    for name, _, body, *_ in rows(structure, "points"):
+        join(name, *([("body", body)] if body else []))
+    for _, endpoints, *_ in rows(structure, "segments"):
+        join(*endpoints)
+    for _, pair, *_ in rows(structure, "tubes"):
+        join(*(("body", body) for body in pair))
+    for *_, corners in rows(structure, "canopy_faces"):
+        join(*corners)
+    reached, frontier = set(), [structure["points"]["data"][0][0]]
+    while frontier:
+        name = frontier.pop()
+        if name not in reached:
+            reached.add(name)
+            frontier.extend(neighbours[name])
+    assert {row[0] for row in rows(structure, "points")} <= reached
+
+
 def test_stations_run_from_the_left_tip_to_the_right(beam):
-    """Station rows run from +y to -y of the wing's KA frame, whose y runs tip to tip."""
+    """Station rows run from the left wing tip to the right."""
     pos = {row[0]: row[3] for row in beam["points"]["data"]}
     span_axis = direction(pos["wing_le_10"], pos["wing_le_1"])
 
