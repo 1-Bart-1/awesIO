@@ -12,7 +12,7 @@ placement:
   headers: [name, base_point, base_pos_ENU, elevation, azimuth, heading]
   units: [-, -, m, deg, deg, deg]
   data:
-    - [kite, ground_anchor, [0.0, 0.0, 0.0], 70.0, 90.0, 0.0]
+    - [kite, ground_anchor, [0.0, 0.0, 0.0], 70.0, 0.0, 0.0]
 
 materials:
   headers: [name, law, parameters]

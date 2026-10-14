@@ -82,8 +82,8 @@ def placement_rotation(base_KA, elevation, azimuth, heading):
     """`R` of a placement row, step by step as the conventions page defines it."""
     elevation, azimuth, heading = np.radians([elevation, azimuth, heading])
     line = -base_KA / np.linalg.norm(base_KA)
-    radial = np.array([math.cos(elevation) * math.sin(azimuth),
-                       math.cos(elevation) * math.cos(azimuth), math.sin(elevation)])
+    radial = np.array([math.cos(elevation) * math.cos(azimuth),
+                       math.cos(elevation) * math.sin(azimuth), math.sin(elevation)])
     axis = np.cross(line, radial)
     if np.linalg.norm(axis) > 1e-12:
         to_radial = rotation(axis / np.linalg.norm(axis), math.acos(line @ radial))

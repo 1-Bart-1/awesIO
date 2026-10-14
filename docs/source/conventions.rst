@@ -110,6 +110,12 @@ A bearing is a horizontal direction in ENU, the angle from north (``+y``) toward
 rotation about ``z``. A wind direction is the bearing the wind blows from, so a westerly
 wind has direction 270.
 
+An azimuth is a horizontal direction in ENU as mathematics measures it, ``atan2(y, x)``:
+the angle from east (``+x``) towards north (``+y``), from −180 to 180. That is
+counter-clockwise seen from above, a positive rotation about ``z``. It converts to a
+bearing as ``bearing = 90 − azimuth``, wrapped to 0–360, and to KiteUtils.jl's
+``azimuth_east``, which counts clockwise, as ``azimuth = −azimuth_east``.
+
 Placing a kite in the world
 ---------------------------
 
@@ -117,7 +123,7 @@ A kite is written in its ``_KA`` frame, and a **placement** puts it in ``_ENU``.
 placement row gives a base point ``b``, which sits at the ground station, the base
 position ``g`` in ENU, an elevation ``ε``, an azimuth ``φ`` and a heading ``ψ``, all in
 degrees. The elevation is the angle of the line from the base point to the kite above
-the horizontal. The azimuth is that line's bearing. The heading turns the kite about
+the horizontal, and the azimuth is that line's azimuth. The heading turns the kite about
 that line: it is 0 where the kite's x axis points away from the zenith, and a positive
 heading is a turn to the right.
 
@@ -136,7 +142,7 @@ right-handed rotation by ``θ`` about the unit vector ``k``, ``Rot(k, θ) v = v 
 (k × v) sin θ + k (k · v)(1 − cos θ)``.
 
 1. **The line.** ``u = −b_KA / |b_KA|`` is the direction from the base point to the
-   origin, and ``r = [cos ε sin φ, cos ε cos φ, sin ε]`` the direction it is placed
+   origin, and ``r = [cos ε cos φ, cos ε sin φ, sin ε]`` the direction it is placed
    along. A base point at the origin is an error.
 2. **Elevation and azimuth.** ``R_ε = Rot((u × r)/|u × r|, acos(u · r))``, the
    smallest rotation taking ``u`` onto ``r``. Where ``u = r`` it is the identity. Where
@@ -147,16 +153,16 @@ right-handed rotation by ``θ`` about the unit vector ``k``, ``Rot(k, θ) v = v 
    from the zenith. The kite's x axis after step 2 is ``a = R_ε [1, 0, 0]``, at the
    heading ``ψ_0 = atan2(a · y_t, a · x_t)``. Then ``R_ψ = Rot(r, ψ − ψ_0)``.
 
-This is how SymbolicAWEModels.jl places a kite, except that it measures the azimuth
-from east rather than north, and the heading from a reference body's x axis rather
-than the kite's.
+This is how SymbolicAWEModels.jl places a kite, except that its azimuth counts
+clockwise, as KiteUtils.jl's ``azimuth_east`` does, and it measures the heading from a
+reference body's x axis rather than the kite's.
 
 Worked example
 ~~~~~~~~~~~~~~
 
 A control unit at the origin, the ground anchor 100 m below it and a point at the
-left tip, placed with the anchor at the ENU origin, the kite east of it at 60°
-elevation and turned 90° to the right:
+left tip, placed with the anchor at the ENU origin, the kite east of it (azimuth 0) at
+60° elevation and turned 90° to the right:
 
 .. code-block:: yaml
 
@@ -164,7 +170,7 @@ elevation and turned 90° to the right:
      headers: [name, base_point, base_pos_ENU, elevation, azimuth, heading]
      units: [-, -, m, deg, deg, deg]
      data:
-       - [kite, ground, [0.0, 0.0, 0.0], 60.0, 90.0, 90.0]
+       - [kite, ground, [0.0, 0.0, 0.0], 60.0, 0.0, 90.0]
    points:
      headers: [name, pos_KA]
      units: [-, m]

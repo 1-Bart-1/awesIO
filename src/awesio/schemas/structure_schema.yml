@@ -141,7 +141,7 @@ properties:
                   the KA origin.
               - const: azimuth
                 description: >
-                  Bearing of that line.
+                  Azimuth of that line, from east towards north.
               - const: heading
                 description: >
                   Turn of the kite about that line, 0 where its x axis points
@@ -167,8 +167,8 @@ properties:
                   minimum: -90
                   maximum: 90
                 - type: number
-                  minimum: 0
-                  maximum: 360
+                  minimum: -180
+                  maximum: 180
                 - type: number
               minItems: 6
 

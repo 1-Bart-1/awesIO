@@ -1,6 +1,6 @@
 ### Added
 
-- A structure file's optional `placement` block puts the kite in the world: per row a base point at the ground station, its ENU position, and an elevation, azimuth (a bearing) and heading in degrees, applied as the conventions page defines with a worked example. Points and bodies name their row in an optional `placement` column, which may be left out where there is one row.
+- A structure file's optional `placement` block puts the kite in the world: per row a base point at the ground station, its ENU position, and an elevation, azimuth and heading in degrees, applied as the conventions page defines with a worked example. The page defines an azimuth, from east towards north, beside the bearing, and how it converts to a bearing and to KiteUtils.jl's `azimuth_east`. Points and bodies name their row in an optional `placement` column, which may be left out where there is one row.
 
 ### Changed
 
