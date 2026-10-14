@@ -34,21 +34,15 @@ def rows(structure, block):
     return structure.get(block, {"data": []})["data"]
 
 
-def the_origin(structure):
-    """The points row `metadata.origin_point` names."""
-    origin = structure["metadata"]["origin_point"]
-    return next(row for row in rows(structure, "points") if row[0] == origin)
-
-
-def a_second_placement(structure):
-    """A copy of the placement row under another name, so the document has two."""
-    rows = structure["placement"]["data"]
-    rows.append(["second", *rows[0][1:]])
-
-
 def a_point_on_a_body(structure):
     """Most rows leave `body` null; breaking that column needs one that does not."""
     return next(row for row in rows(structure, "points") if row[2] is not None)
+
+
+def a_second_kite(structure):
+    """A copy of the kites row under another name, so the document has two."""
+    kites = structure["kites"]["data"]
+    kites.append(["second", *kites[0][1:]])
 
 
 def append_column(table, header, value, unit=None):
@@ -139,14 +133,14 @@ def test_n_points_agrees_with_the_points_block(structure):
     assert structure["metadata"]["n_points"] == len(structure["points"]["data"])
 
 
-def test_body_frames_are_unit_quaternions(structure):
-    """Draft-07 can hold `Q_body2KA` to four numbers but not to unit length."""
-    for name, _, frame, *_ in rows(structure, "bodies"):
+def test_body_and_kite_frames_are_unit_quaternions(structure):
+    """Draft-07 can hold `Q_KA2ENU` to four numbers but not to unit length."""
+    for name, _, frame, *_ in rows(structure, "bodies") + rows(structure, "kites"):
         assert math.isclose(math.hypot(*frame), 1.0, abs_tol=1e-12), name
 
 
 def test_body_inertia_is_symmetric(structure):
-    """Draft-07 can hold `extra_inertia_body` to three rows but not to symmetry."""
+    """Draft-07 can hold `extra_inertia_KA` to three rows but not to symmetry."""
     for name, *_, inertia in rows(structure, "bodies"):
         for i in range(3):
             for j in range(i):
@@ -233,7 +227,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["points"]["data"][0].__setitem__(1, "STATIC")),
         ("a point both held in the world and on a body",
          lambda d: a_point_on_a_body(d).__setitem__(1, True)),
-        ("two-component pos_KA",
+        ("two-component pos_ENU",
          lambda d: d["points"]["data"][0].__setitem__(3, [0.0, 0.0])),
         ("a point's body given as an index",
          lambda d: a_point_on_a_body(d).__setitem__(2, 2)),
@@ -343,41 +337,16 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["canopy_faces"]["data"][0][2].append("wing_le_8")),
         ("a canopy material given as a number",
          lambda d: d["wings"]["data"][0].__setitem__(1, 42)),
-        ("missing origin_point",
-         lambda d: d["metadata"].pop("origin_point")),
-        ("an origin_point that is not a point",
-         lambda d: d["metadata"].update(origin_point="nowhere")),
-        ("an origin point away from the KA origin",
-         lambda d: the_origin(d).__setitem__(3, [0.0, 0.0, 0.1])),
-        ("a points row naming a placement that does not exist",
-         lambda d: (append_column(d["points"], "placement", "kite", unit="-"),
-                    d["points"]["data"][5].__setitem__(-1, "nowhere"))),
-        ("a bodies row naming a placement that does not exist",
-         lambda d: append_column(d["bodies"], "placement", "nowhere", unit="-")),
-        ("a placement column and no placement block",
-         lambda d: (d.pop("placement"),
-                    append_column(d["points"], "placement", "kite", unit="-"))),
-        ("two placements and points naming neither",
-         lambda d: (a_second_placement(d),
-                    append_column(d["bodies"], "placement", "kite", unit="-"))),
-        ("a placement whose base point is not a point",
-         lambda d: d["placement"]["data"][0].__setitem__(1, "nowhere")),
-        ("a placement whose base point is the origin point",
-         lambda d: d["placement"]["data"][0].__setitem__(1, "kcu")),
-        ("a placement whose base point another row places",
-         lambda d: (a_second_placement(d),
-                    append_column(d["points"], "placement", "second", unit="-"),
-                    append_column(d["bodies"], "placement", "second", unit="-"))),
-        ("an elevation above the zenith",
-         lambda d: d["placement"]["data"][0].__setitem__(3, 91.0)),
-        ("an azimuth of -180, which is spelt 180",
-         lambda d: d["placement"]["data"][0].__setitem__(4, -180.0)),
-        ("a heading past 180",
-         lambda d: d["placement"]["data"][0].__setitem__(5, 181.0)),
-        ("an azimuth in radians",
-         lambda d: d["placement"]["units"].__setitem__(4, "rad")),
         ("a canopy face without its wing",
          lambda d: d["canopy_faces"]["data"][0].__setitem__(1, None)),
+        ("a kite origin in millimetres",
+         lambda d: d["kites"]["units"].__setitem__(1, "mm")),
+        ("a point naming a kite that does not exist",
+         lambda d: append_column(d["points"], "kite", "nowhere", unit="-")),
+        ("a body naming a kite that does not exist",
+         lambda d: append_column(d["bodies"], "kite", "nowhere", unit="-")),
+        ("two kites and points naming neither",
+         lambda d: (a_second_kite(d), append_column(d["bodies"], "kite", "v3", unit="-"))),
     ],
 )
 def test_malformed_structures_are_rejected(beam, label, mutate):
@@ -387,7 +356,7 @@ def test_malformed_structures_are_rejected(beam, label, mutate):
 
 def test_optional_blocks_may_be_absent(structure):
     """An absent optional block means the same as an empty one."""
-    for block in ("materials", "placement", "spanwise_stations", "pulleys", "tethers",
+    for block in ("materials", "kites", "spanwise_stations", "pulleys", "tethers",
                   "winches", "bodies", "tubes", "wings", "canopy_faces"):
         structure.pop(block, None)
     for row in structure["points"]["data"]:
@@ -424,12 +393,10 @@ def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     assert_valid(structure)
 
 
-def test_points_and_bodies_may_name_their_placement(beam):
-    """With two placements, every point and body names the row that places it."""
-    a_second_placement(beam)
-    append_column(beam["points"], "placement", "kite", unit="-")
-    append_column(beam["bodies"], "placement", "kite", unit="-")
-    second_point = beam["points"]["data"][-1]
-    second_point[-1] = "second"
-    beam["placement"]["data"][-1][1] = second_point[0]
+def test_points_and_bodies_name_their_kite_or_none(beam):
+    """With two kites, every point and body names its kite, or null outside them."""
+    a_second_kite(beam)
+    append_column(beam["points"], "kite", "v3", unit="-")
+    append_column(beam["bodies"], "kite", "second", unit="-")
+    beam["points"]["data"][-1][-1] = None
     assert_valid(beam)

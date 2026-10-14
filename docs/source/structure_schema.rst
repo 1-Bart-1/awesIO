@@ -116,7 +116,7 @@ A station's **local twist** is the angle its chord has turned through about the 
 KA y axis from where the document places it, positive pitching the leading edge up.
 
 A station is not tied to the aerodynamic mesh: it may cover several of its panels.
-A wing's station rows run from +y to -y of the KA frame, left tip to right tip.
+A wing's station rows run from +y to -y of its KA frame, left tip to right tip.
 
 **A canopy is fabric meshed over existing points**, the way a ``.obj`` meshes faces
 over its vertices: its corners are rows of ``points``, never a second kind of point,
@@ -131,9 +131,9 @@ its edges.
 Bodies, and the tubes between them
 ----------------------------------
 
-A rigid body has a position and a frame: ``pos_KA`` is its origin, the centre of
-its own mass, and ``Q_body2KA`` the rotation from its own frame into the kite's.
-``extra_mass`` and ``extra_inertia_body`` are taken about that origin.
+A rigid body has a position and a frame: ``pos_ENU`` is its origin, the centre of
+its own mass, and ``Q_KA2ENU`` the rotation from its own KA frame into the world.
+``extra_mass`` and ``extra_inertia_KA`` are taken about that origin.
 
 Every mass in a document is extra mass, never a total: a reader adds what it
 derives. A point's ``extra_mass`` leaves out its segments and canopy faces. A reader
@@ -142,12 +142,12 @@ material's density, and an equal share of each face the point is a corner of: th
 face's area times its material's areal density. A face's area is half the norm of
 the cross product of its diagonals, or of two edges for a triangle, which holds for
 a quadrilateral whose corners are not in one plane. A body's ``extra_mass`` and
-``extra_inertia_body`` leave out the points fixed to it, which a reader adds to the
+``extra_inertia_KA`` leave out the points fixed to it, which a reader adds to the
 body.
 
-``extra_inertia_body`` is the full tensor in the body's own axes. Where those are its
-principal axes the tensor is diagonal; a wing body's axes are the kite's, so its
-tensor in general is not.
+``extra_inertia_KA`` is the full tensor in the body's KA axes. Where those are its
+principal axes the tensor is diagonal; a wing body's KA axes are fixed by the wing's
+geometry, so its tensor in general is not.
 
 **A tube joins two bodies**, named in its ``bodies`` column and never as points.
 Their positions fix its ends and so its rest length, and one ``diameter`` holds for
@@ -163,27 +163,20 @@ so every file gives it. Its preimage is spelled out on ``metadata.connectivity_s
 in the schema below; the row numbers in it are **one-based**, so that a zero-based
 reader does not see every file as a mismatch.
 
-Frames and placement
---------------------
+Frames
+------
 
-A column's suffix names the frame of its vectors, ``_KA``, ``_body`` or ``_ENU``, as
-the :doc:`conventions` define them. Every position is in the kite's KA frame, as the
-tools that design a kite draw it, with its origin at the point ``metadata.origin_point``
-names: the control unit of a soft kite.
+A column's suffix names the frame of its vectors, ``_ENU`` or ``_KA``, as the
+:doc:`conventions` define them. Every position is in ENU, where the system is placed:
+a document is expanded all the way into the world, so a reader needs no transform to
+draw it.
 
-A body's ``_body`` frame holds the axes its ``extra_inertia_body`` is stated in. A wing
-body's are the kite's. A control unit or a single tube has no leading edge to orient it
-by, so its writer orients that frame as it likes and ``Q_body2KA`` is where the file
-says which orientation it chose.
+A body's ``_KA`` frame holds the axes its ``extra_inertia_KA`` is stated in. A control
+unit or a single tube has no leading edge to orient it by, so its writer
+orients that frame as it likes and ``Q_KA2ENU`` is where the file says which
+orientation it chose.
 
-**The** ``placement`` **block puts the kite in the world.** Each row names the base
-point that sits at the ground station, where that is in ENU, and the elevation,
-azimuth and heading the kite is flown at; the :doc:`conventions` say how a reader
-applies it. A document holding several groups placed apart, such as two kites on one
-ground station, gives each its row and has every point and body name its row in a
-``placement`` column. With one row that column may be left out. Without the block the
-document says where everything is relative to the kite, and nothing about where the
-kite is.
+**The** ``kites`` **block says where each kite's own frame is.** A kite is a wing with its bridle and, where it has one, its control unit; the ``wings`` block holds only the lifting surface. Each row gives the origin of the kite's KA frame in ENU, a position that need not be a point, and ``Q_KA2ENU``, the frame's orientation. That is the frame the tools that design a kite draw it in, and an aerodynamic mesh is drawn in, so a reader takes the kite back into it as the :doc:`conventions` define. A document with several kites has every point and body name its kite in a ``kite`` column, null for one outside every kite such as a ground anchor. With one kite that column may be left out. Where and how a kite is flown, its elevation, azimuth and heading, follows from the positions and is not stated.
 
 What is not described here
 --------------------------
@@ -197,9 +190,8 @@ Examples
 --------
 
 ``examples/structure`` holds two models of the same kite — the TU Delft V3, a bridled
-soft wing, in its own frame and placed east of the ground station at 70° elevation.
-They share the bridle, the tether and the single winch, and differ in what carries the
-wing:
+soft wing, placed at 70° elevation. They share the bridle, the tether and the single
+winch, and differ in what carries the wing:
 
 ``v3_psm_structure.yml``
    The particle lattice: 44 points, 68 segments and 6 pulleys carry the wing's shape,

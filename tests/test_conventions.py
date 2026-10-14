@@ -6,15 +6,14 @@ import re
 import warnings
 from pathlib import Path
 
-import numpy as np
 import pytest
-from ruamel.yaml import YAML
 
 from awesio.validator import validate
 from awesio.yaml import load_yaml
 
 EXAMPLES = Path(__file__).parent.parent / "examples"
 CONVENTIONS = Path(__file__).parent.parent / "docs/source/conventions.rst"
+STATED_VECTOR = r"``(o|Q_KA2ENU|p_ENU|p_KA) = \[([^\]]+)\]``"
 OPERATIONAL_CONSTRAINTS = (
     "ground_gen/soft_kite_pumping_ground_gen_operational_constraints.yml"
 )
@@ -72,50 +71,43 @@ def test_terrain_zones_are_bearings_in_degrees():
     assert "361.0 is greater than the maximum of 360" in warning
 
 
-def rotation(axis, angle):
-    """Right-handed rotation by `angle` [rad] about the unit vector `axis`."""
-    x, y, z = axis
-    cross = np.array([[0, -z, y], [z, 0, -x], [-y, x, 0]])
-    return np.eye(3) + math.sin(angle) * cross + (1 - math.cos(angle)) * cross @ cross
+def rotation_matrix(quaternion):
+    """The matrix of a unit quaternion `[w, x, y, z]`, as `v_to = R v_from`."""
+    w, x, y, z = quaternion
+    return [
+        [1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+        [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+        [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)],
+    ]
 
 
-def placement_rotation(base_KA, elevation, azimuth, heading):
-    """`R` of a placement row, step by step as the conventions page defines it."""
-    elevation, azimuth, heading = np.radians([elevation, azimuth, heading])
-    line = -base_KA / np.linalg.norm(base_KA)
-    radial = np.array([math.cos(elevation) * math.cos(azimuth),
-                       math.cos(elevation) * math.sin(azimuth), math.sin(elevation)])
-    axis = np.cross(line, radial)
-    if np.linalg.norm(axis) > 1e-12:
-        to_radial = rotation(axis / np.linalg.norm(axis), math.acos(line @ radial))
-    elif line @ radial > 0:
-        to_radial = np.eye(3)
-    else:
-        reference = [1, 0, 0] if abs(line[0]) < 0.9 else [0, 1, 0]
-        normal = np.cross(line, reference)
-        to_radial = rotation(normal / np.linalg.norm(normal), math.pi)
-    horizontal = np.array([-radial[1], radial[0], 0.0])
-    y_t = (horizontal / np.linalg.norm(horizontal) if np.linalg.norm(horizontal) > 1e-12
-           else np.array([0.0, 1.0, 0.0]))
-    x_t = np.cross(y_t, radial)
-    x_kite = to_radial[:, 0]
-    current = math.atan2(x_kite @ y_t, x_kite @ x_t)
-    return rotation(radial, heading - current) @ to_radial
-
-
-def worked_example():
-    """The placement, points and ENU result of the conventions page's worked example."""
-    section = CONVENTIONS.read_text().split("Worked example\n~~~")[1]
-    blocks = re.findall(r"code-block:: yaml\n\n((?:   .*\n|\n)+)", section)
-    document, result = (YAML(typ="safe").load(block) for block in blocks)
-    return document, result["pos_ENU"]
+def to_kite_frame(pos_ENU, origin, Q_KA2ENU):
+    """`p_KA = Rᵀ (p_ENU − o)`, as the conventions page defines it."""
+    offset = [p - o for p, o in zip(pos_ENU, origin)]
+    columns = zip(*rotation_matrix(Q_KA2ENU))
+    return [sum(r * d for r, d in zip(column, offset)) for column in columns]
 
 
 def test_the_worked_example_lands_where_the_page_says():
-    document, pos_ENU = worked_example()
-    [[_, base_point, base_pos, elevation, azimuth, heading]] = document["placement"]["data"]
-    pos_KA = {name: np.array(position) for name, position in document["points"]["data"]}
-    R = placement_rotation(pos_KA[base_point], elevation, azimuth, heading)
-    for name, position in pos_KA.items():
-        placed = np.array(base_pos) + R @ (position - pos_KA[base_point])
-        assert placed == pytest.approx(pos_ENU[name], abs=5e-4), name
+    page = CONVENTIONS.read_text()
+    stated = {
+        name: [float(x) for x in value.split(",")]
+        for name, value in re.findall(STATED_VECTOR, page)
+    }
+    assert set(stated) == {"o", "Q_KA2ENU", "p_ENU", "p_KA"}
+    pos_KA = to_kite_frame(stated["p_ENU"], stated["o"], stated["Q_KA2ENU"])
+    assert all(math.isclose(a, b, abs_tol=1e-12) for a, b in zip(pos_KA, stated["p_KA"]))
+
+
+@pytest.mark.parametrize(
+    "path, anchor",
+    [("v3_beam_structure.yml", "ground_anchor"), ("v3_psm_structure.yml", "39")],
+)
+def test_the_v3_tether_hangs_straight_down_in_the_kite_frame(path, anchor):
+    """The V3 kite is authored straight above its ground anchor, which its kites row
+    puts on the kite's negative z axis."""
+    structure = load_yaml(EXAMPLES / "structure" / path)
+    [(_, origin, Q_KA2ENU)] = structure["kites"]["data"]
+    pos_ENU = {row[0]: row[3] for row in structure["points"]["data"]}
+    x, y, z = to_kite_frame(pos_ENU[anchor], origin, Q_KA2ENU)
+    assert math.isclose(x, 0, abs_tol=1e-9) and math.isclose(y, 0, abs_tol=1e-9) and z < 0

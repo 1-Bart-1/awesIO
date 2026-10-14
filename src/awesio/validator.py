@@ -82,65 +82,24 @@ def column(table, header):
     return [row[i] for row in rows if isinstance(row, list) and i < len(row)]
 
 
-def origin_at_zero(validator, enabled, instance, schema):
-    """The `originAtZero` keyword: `metadata.origin_point` names a point at the KA
-    origin."""
+def kites_resolve(validator, enabled, instance, schema):
+    """The `kitesResolve` keyword: every point and body names a `kites` row or null in
+    its `kite` column, which it may leave out where there is at most one kite."""
     if not (enabled and validator.is_type(instance, "object")):
         return
-    origin = instance.get("metadata", {}).get("origin_point")
-    if origin is None:
-        return
-    points = instance.get("points")
-    positions = dict(zip(column(points, "name") or [], column(points, "pos_KA") or []))
-    if origin not in positions:
-        yield jsonschema.ValidationError(
-            f"origin_point {origin!r} is not a point", path=["metadata", "origin_point"]
-        )
-    elif positions[origin] != [0, 0, 0]:
-        yield jsonschema.ValidationError(
-            f"origin_point {origin!r} is at {positions[origin]}, not [0, 0, 0]",
-            path=["metadata", "origin_point"],
-        )
-
-
-def placements_resolve(validator, enabled, instance, schema):
-    """The `placementsResolve` keyword: every `placement` row's base point is a point
-    that row places, other than the origin point, and every point and body names a
-    `placement` row, which it may leave unsaid where there is only one."""
-    if not (enabled and validator.is_type(instance, "object")):
-        return
-    placement = instance.get("placement")
-    placements = column(placement, "name") or []
-    point_names = column(instance.get("points"), "name") or []
-    point_rows = column(instance.get("points"), "placement") or [None] * len(point_names)
-    point_placements = dict(zip(point_names, point_rows))
-    origin = instance.get("metadata", {}).get("origin_point")
-    rows = zip(placements, column(placement, "base_point") or [])
-    for i, (name, base_point) in enumerate(rows):
-        if base_point not in point_placements:
-            problem = "is not a point"
-        elif base_point == origin:
-            problem = "is the origin point"
-        elif point_placements[base_point] not in (name, None):
-            problem = f"is placed by {point_placements[base_point]!r}"
-        else:
-            continue
-        yield jsonschema.ValidationError(
-            f"base_point {base_point!r} {problem}", path=["placement", "data", i]
-        )
+    kites = column(instance.get("kites"), "name") or []
     for block in ("points", "bodies"):
-        named = column(instance.get(block), "placement")
+        named = column(instance.get(block), "kite")
         if named is None:
-            if len(placements) > 1 and column(instance.get(block), "name"):
+            if len(kites) > 1 and column(instance.get(block), "name"):
                 yield jsonschema.ValidationError(
-                    f"{block} name none of the {len(placements)} placement rows",
-                    path=[block],
+                    f"{block} have no kite column for {len(kites)} kites", path=[block]
                 )
             continue
-        for i, name in enumerate(named):
-            if name not in placements:
+        for i, kite in enumerate(named):
+            if kite is not None and kite not in kites:
                 yield jsonschema.ValidationError(
-                    f"placement {name!r} is not a placement row", path=[block, "data", i]
+                    f"kite {kite!r} is not a kites row", path=[block, "data", i]
                 )
 
 
@@ -233,8 +192,11 @@ def _jsonschema_validate_modified(instance, schema, cls=None, *args, **kwargs):
     if cls is None:
         cls = jsonschema.validators.extend(
             jsonschema.validators.validator_for(schema),
-            {"rowsMatchHeaders": rows_match_headers, "optionalColumns": optional_columns,
-             "originAtZero": origin_at_zero, "placementsResolve": placements_resolve},
+            {
+                "rowsMatchHeaders": rows_match_headers,
+                "optionalColumns": optional_columns,
+                "kitesResolve": kites_resolve,
+            },
         )
 
     cls.check_schema(schema)
