@@ -65,7 +65,7 @@ points:
     - ["1_point_5", false, null, [5.700335722094, 0.0, 15.661543679765], 0.0]
 
 segments:
-  headers: [name, points, l0, diameter, material]
+  headers: [name, points, rest_length, diameter, material]
   units: [-, -, m, m, -]
   data:
     - ["1", ["2", "4"], 0.984642, 0.001, wing_tube]
@@ -137,7 +137,7 @@ segments:
     - ["1_seg_5", ["1_point_4", "1_point_5"], 16.666666666666668, 0.0135, v3_psm_line]
     - ["1_seg_6", ["1_point_5", "39"], 16.666666666666668, 0.0135, v3_psm_line]
 
-stations:
+spanwise_stations:
   headers: [name, wing, points]
   units: [-, -, -]
   data:

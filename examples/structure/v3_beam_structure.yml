@@ -245,7 +245,7 @@ points:
     - [tether_point_5, false, null, [14.250838735203, 0.0, 39.153857633258], 0.0]
 
 segments:
-  headers: [name, points, l0, diameter, material]
+  headers: [name, points, rest_length, diameter, material]
   units: [-, -, m, m, -]
   data:
     - [steering_right, [bridle_126, kcu], 1.6, 0.005, control_line]
@@ -344,7 +344,7 @@ segments:
     - [br5_seg_1, [bridle_119, bridle_120], 0.824917026130507, 0.002, v3_beam_line]
     - [br5_2_seg_1, [bridle_85, bridle_86], 0.824917026130507, 0.002, v3_beam_line]
 
-stations:
+spanwise_stations:
   headers: [name, wing, points]
   units: [-, -, -]
   data:
@@ -498,7 +498,7 @@ canopy_faces:
     - [canopy_9_10, wing, [wing_ctrl_9_10, wing_te_9, wing_te_10, wing_ctrl_10_10]]
 
 bodies:
-  headers: [name, pos_ENU, Q_KA_to_ENU, extra_mass, extra_inertia_KA]
+  headers: [name, pos_ENU, Q_KA2ENU, extra_mass, extra_inertia_KA]
   units: [-, m, -, kg, kg*m^2]
   data:
     - [wing_le_body_1, [88.431350269061, 4.1055, 242.610819605908], [-0.733752274882813, 0.659925311892572, -0.097952267805738, -0.128497218100246], 0.1777, [[0.005581, 0.0, 0.0], [0.0, 0.005581, 0.0], [0.0, 0.0, 0.005581]]]
