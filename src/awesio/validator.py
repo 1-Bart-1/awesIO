@@ -46,6 +46,32 @@ def rows_match_headers(validator, enabled, instance, schema):
             )
 
 
+def optional_columns(validator, columns, instance, schema):
+    """The `optionalColumns` keyword: a column of a headers/units/data table under a
+    header it names has the unit and the values it gives that header, wherever the
+    column stands."""
+    if not validator.is_type(instance, "object"):
+        return
+    headers, units, rows = (instance.get(key) for key in ("headers", "units", "data"))
+    if not validator.is_type(headers, "array"):
+        return
+    for i, header in enumerate(headers):
+        column = columns.get(header) if validator.is_type(header, "string") else None
+        if column is None:
+            continue
+        unit = units[i] if validator.is_type(units, "array") and i < len(units) else None
+        if unit is not None and unit != column["unit"]:
+            yield jsonschema.ValidationError(
+                f"{header} is in {column['unit']!r}, not {unit!r}", path=["units", i]
+            )
+        for row_number, row in enumerate(rows if validator.is_type(rows, "array") else []):
+            if not (validator.is_type(row, "array") and i < len(row)):
+                continue
+            for error in validator.descend(row[i], column["value"], path=i):
+                error.path.extendleft([row_number, "data"])
+                yield error
+
+
 def _enforce_no_additional_properties(schema):
     """Recursively set additionalProperties: false for all objects in the schema"""
     if isinstance(schema, dict):
@@ -135,7 +161,7 @@ def _jsonschema_validate_modified(instance, schema, cls=None, *args, **kwargs):
     if cls is None:
         cls = jsonschema.validators.extend(
             jsonschema.validators.validator_for(schema),
-            {"rowsMatchHeaders": rows_match_headers},
+            {"rowsMatchHeaders": rows_match_headers, "optionalColumns": optional_columns},
         )
 
     cls.check_schema(schema)

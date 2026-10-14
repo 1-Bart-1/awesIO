@@ -39,18 +39,23 @@ header, and spells each unit one way:
      - area
    * - ``kg``
      - mass
+   * - ``kg/m^2``
+     - areal density
    * - ``kg/m^3``
      - density
    * - ``kg*m^2``
      - moment of inertia
    * - ``N``
-     - force, and axial stiffness times length
+     - force
+   * - ``N/m``
+     - force per length, such as a membrane stiffness
    * - ``Pa``
      - pressure
    * - ``deg``
      - angle
    * - ``-``
-     - dimensionless, and a column holding names, types or references
+     - dimensionless, and a column holding names, flags, types, references or a law's
+       parameters
 
 A unit not listed is written the same way: SI symbols joined by ``*`` and ``/``,
 powers with ``^``, such as ``m/s`` or ``N*m^2``. A schema pins the unit of every
@@ -91,7 +96,7 @@ right-handed and in metres. The frames are those of `KiteUtils.jl
    The world: x east, y north, z up, with its origin at the tether exit point of the
    ground station.
 
-A rotation reads ``Q_<from>_to_<to>``: a unit quaternion ``q``, scalar first
+A rotation reads ``Q_<from>2<to>``: a unit quaternion ``q``, scalar first
 ``[w, x, y, z]``, that takes a vector's components in ``<from>`` to the same vector's
 components in ``<to>``, ``v_to = q v_from q*``. Its rotation matrix has ``<from>``'s
 axes, written in ``<to>``, as its columns.
