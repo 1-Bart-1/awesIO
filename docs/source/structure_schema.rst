@@ -198,8 +198,8 @@ Examples
 
 ``examples/structure`` holds two models of the same kite — the TU Delft V3, a bridled
 soft wing, in its own frame and placed east of the ground station at 70° elevation.
-They share the bridle, the tether and the single
-winch, and differ in what carries the wing:
+They share the bridle, the tether and the single winch, and differ in what carries the
+wing:
 
 ``v3_psm_structure.yml``
    The particle lattice: 44 points, 68 segments and 6 pulleys carry the wing's shape,

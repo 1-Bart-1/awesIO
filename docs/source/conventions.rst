@@ -111,7 +111,7 @@ rotation about ``z``. A wind direction is the bearing the wind blows from, so a 
 wind has direction 270.
 
 An azimuth is a horizontal direction in ENU as mathematics measures it, ``atan2(y, x)``:
-the angle from east (``+x``) towards north (``+y``), from −180 to 180. That is
+the angle from east (``+x``) towards north (``+y``), above −180 and up to 180. That is
 counter-clockwise seen from above, a positive rotation about ``z``. It converts to a
 bearing as ``bearing = 90 − azimuth``, wrapped to 0–360, and to KiteUtils.jl's
 ``azimuth_east``, which counts clockwise, as ``azimuth = −azimuth_east``.
@@ -124,8 +124,8 @@ placement row gives a base point ``b``, which sits at the ground station, the ba
 position ``g`` in ENU, an elevation ``ε``, an azimuth ``φ`` and a heading ``ψ``, all in
 degrees. The elevation is the angle of the line from the base point to the kite above
 the horizontal, and the azimuth is that line's azimuth. The heading turns the kite about
-that line: it is 0 where the kite's x axis points away from the zenith, and a positive
-heading is a turn to the right.
+that line: it is 0 where the kite's x axis points away from the zenith, a positive
+heading is a turn to the right, and it lies above −180 and up to 180 as the azimuth does.
 
 A row is applied to every point and body it places in three steps: translate the kite
 so that ``b`` is at ``g`` with its axes along ENU's, rotate it about ``b`` so that the

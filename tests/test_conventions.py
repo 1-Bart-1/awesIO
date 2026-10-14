@@ -74,7 +74,8 @@ def test_terrain_zones_are_bearings_in_degrees():
 
 def rotation(axis, angle):
     """Right-handed rotation by `angle` [rad] about the unit vector `axis`."""
-    cross = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
+    x, y, z = axis
+    cross = np.array([[0, -z, y], [z, 0, -x], [-y, x, 0]])
     return np.eye(3) + math.sin(angle) * cross + (1 - math.cos(angle)) * cross @ cross
 
 

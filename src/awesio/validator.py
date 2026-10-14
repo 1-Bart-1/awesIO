@@ -78,7 +78,8 @@ def column(table, header):
     if not isinstance(table, dict) or header not in table.get("headers", []):
         return None
     i = table["headers"].index(header)
-    return [row[i] for row in table.get("data", []) if isinstance(row, list) and i < len(row)]
+    rows = table.get("data", [])
+    return [row[i] for row in rows if isinstance(row, list) and i < len(row)]
 
 
 def origin_at_zero(validator, enabled, instance, schema):
@@ -103,19 +104,30 @@ def origin_at_zero(validator, enabled, instance, schema):
 
 
 def placements_resolve(validator, enabled, instance, schema):
-    """The `placementsResolve` keyword: every `placement` row's base point is a point,
-    and every point and body names a `placement` row, which it may leave unsaid where
-    there is only one."""
+    """The `placementsResolve` keyword: every `placement` row's base point is a point
+    that row places, other than the origin point, and every point and body names a
+    `placement` row, which it may leave unsaid where there is only one."""
     if not (enabled and validator.is_type(instance, "object")):
         return
     placement = instance.get("placement")
     placements = column(placement, "name") or []
-    points = column(instance.get("points"), "name") or []
-    for i, base_point in enumerate(column(placement, "base_point") or []):
-        if base_point not in points:
-            yield jsonschema.ValidationError(
-                f"base_point {base_point!r} is not a point", path=["placement", "data", i]
-            )
+    point_names = column(instance.get("points"), "name") or []
+    point_rows = column(instance.get("points"), "placement") or [None] * len(point_names)
+    point_placements = dict(zip(point_names, point_rows))
+    origin = instance.get("metadata", {}).get("origin_point")
+    rows = zip(placements, column(placement, "base_point") or [])
+    for i, (name, base_point) in enumerate(rows):
+        if base_point not in point_placements:
+            problem = "is not a point"
+        elif base_point == origin:
+            problem = "is the origin point"
+        elif point_placements[base_point] not in (name, None):
+            problem = f"is placed by {point_placements[base_point]!r}"
+        else:
+            continue
+        yield jsonschema.ValidationError(
+            f"base_point {base_point!r} {problem}", path=["placement", "data", i]
+        )
     for block in ("points", "bodies"):
         named = column(instance.get(block), "placement")
         if named is None:

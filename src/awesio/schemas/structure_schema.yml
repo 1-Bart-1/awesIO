@@ -43,8 +43,9 @@ description: >
   frame. How it moves from there — positions, velocities, forces, twist angles,
   reel-out — is live state and is never described here.
 
-  awesio.validator enforces `originAtZero` and `placementsResolve`, keywords
-  that check these names across blocks and that other draft-07 validators skip.
+  awesio.validator enforces this schema's own keywords, which other draft-07
+  validators skip: `rowsMatchHeaders` and `optionalColumns` within a table, and
+  `originAtZero` and `placementsResolve` across blocks.
 
 type: object
 required:
@@ -167,9 +168,11 @@ properties:
                   minimum: -90
                   maximum: 90
                 - type: number
-                  minimum: -180
+                  exclusiveMinimum: -180
                   maximum: 180
                 - type: number
+                  exclusiveMinimum: -180
+                  maximum: 180
               minItems: 6
 
   # --------------------------------------------------------------------------
@@ -681,9 +684,7 @@ definitions:
       `optionalColumns` names has that unit and those values wherever it
       stands. Every header is a distinct string and every unit a non-empty
       one, and the units and every row are exactly as long as the headers.
-      awesio.validator enforces `rowsMatchHeaders` and `optionalColumns`,
-      which other draft-07 validators skip. docs/source/conventions.rst gives
-      each unit's spelling.
+      docs/source/conventions.rst gives each unit's spelling.
     type: object
     required:
       - headers

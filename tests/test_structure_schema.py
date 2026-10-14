@@ -42,7 +42,8 @@ def the_origin(structure):
 
 def a_second_placement(structure):
     """A copy of the placement row under another name, so the document has two."""
-    structure["placement"]["data"].append(["second", *structure["placement"]["data"][0][1:]])
+    rows = structure["placement"]["data"]
+    rows.append(["second", *rows[0][1:]])
 
 
 def a_point_on_a_body(structure):
@@ -361,8 +362,18 @@ def test_every_reference_resolves_to_a_named_row(structure):
                     append_column(d["bodies"], "placement", "kite", unit="-"))),
         ("a placement whose base point is not a point",
          lambda d: d["placement"]["data"][0].__setitem__(1, "nowhere")),
+        ("a placement whose base point is the origin point",
+         lambda d: d["placement"]["data"][0].__setitem__(1, "kcu")),
+        ("a placement whose base point another row places",
+         lambda d: (a_second_placement(d),
+                    append_column(d["points"], "placement", "second", unit="-"),
+                    append_column(d["bodies"], "placement", "second", unit="-"))),
         ("an elevation above the zenith",
          lambda d: d["placement"]["data"][0].__setitem__(3, 91.0)),
+        ("an azimuth of -180, which is spelt 180",
+         lambda d: d["placement"]["data"][0].__setitem__(4, -180.0)),
+        ("a heading past 180",
+         lambda d: d["placement"]["data"][0].__setitem__(5, 181.0)),
         ("an azimuth in radians",
          lambda d: d["placement"]["units"].__setitem__(4, "rad")),
         ("a canopy face without its wing",
@@ -413,11 +424,12 @@ def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     assert_valid(structure)
 
 
-
 def test_points_and_bodies_may_name_their_placement(beam):
     """With two placements, every point and body names the row that places it."""
     a_second_placement(beam)
     append_column(beam["points"], "placement", "kite", unit="-")
     append_column(beam["bodies"], "placement", "kite", unit="-")
-    beam["points"]["data"][-1][-1] = "second"
+    second_point = beam["points"]["data"][-1]
+    second_point[-1] = "second"
+    beam["placement"]["data"][-1][1] = second_point[0]
     assert_valid(beam)
