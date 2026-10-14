@@ -30,7 +30,7 @@ Added
   kite as V3Kite.jl's particle-lattice and Timoshenko-beam models build it
 - Sphinx documentation with schema reference pages
 - Conventions page for the rules every file shares, the ``_KA`` and ``_ENU``
-  frames, ``Q_<from>_to_<to>`` rotations and bearings among them; the system, wind
+  frames, ``Q_<from>2<to>`` rotations and bearings among them; the system, wind
   resource and operational constraints schemas accept extra top-level blocks a tool
   adds, as structure and power curves already did
 - Terrain zones and wind directions are bearings in ``_ENU``; a wing's dihedral and

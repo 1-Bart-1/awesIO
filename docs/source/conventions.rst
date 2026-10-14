@@ -54,7 +54,7 @@ header, and spells each unit one way:
    * - ``deg``
      - angle
    * - ``-``
-     - dimensionless, and a column holding names, types, references or a law's
+     - dimensionless, and a column holding names, flags, types, references or a law's
        parameters
 
 A unit not listed is written the same way: SI symbols joined by ``*`` and ``/``,
@@ -96,7 +96,7 @@ right-handed and in metres. The frames are those of `KiteUtils.jl
    The world: x east, y north, z up, with its origin at the tether exit point of the
    ground station.
 
-A rotation reads ``Q_<from>_to_<to>``: a unit quaternion ``q``, scalar first
+A rotation reads ``Q_<from>2<to>``: a unit quaternion ``q``, scalar first
 ``[w, x, y, z]``, that takes a vector's components in ``<from>`` to the same vector's
 components in ``<to>``, ``v_to = q v_from q*``. Its rotation matrix has ``<from>``'s
 axes, written in ``<to>``, as its columns.
