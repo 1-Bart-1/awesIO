@@ -38,15 +38,21 @@ description: >
   A column's suffix names the frame of its vectors and a rotation is named
   `Q_<from>2<to>`, as docs/source/conventions.rst defines them.
 
-  Positions are in the ENU world frame, where the system is placed. How it moves
-  from there — positions, velocities, forces, twist angles, reel-out — is live
-  state and is never described here.
+  Positions are in the kite's KA frame, with its origin at the point
+  `metadata.origin_point` names, and the `placement` rows put it in the ENU world
+  frame. How it moves from there — positions, velocities, forces, twist angles,
+  reel-out — is live state and is never described here.
+
+  awesio.validator enforces `originAtZero` and `placementsResolve`, keywords
+  that check these names across blocks and that other draft-07 validators skip.
 
 type: object
 required:
   - metadata
   - points
   - segments
+originAtZero: true
+placementsResolve: true
 
 properties:
   metadata:
@@ -59,6 +65,7 @@ properties:
       - schema
       - n_points
       - connectivity_sha
+      - origin_point
     properties:
       name:
         type: string
@@ -97,7 +104,73 @@ properties:
           implementations in zero-based languages agree with each other; a
           reader that gets this wrong sees every file as a mismatch.
         pattern: '^[0-9a-f]{64}$'
+      origin_point:
+        description: >
+          The point at the origin of the KA frame, whose `pos_KA` is [0, 0, 0]:
+          the control unit of a soft kite.
+        $ref: "#/definitions/component_name"
     additionalProperties: false
+
+  # --------------------------------------------------------------------------
+  # PLACEMENT
+  # --------------------------------------------------------------------------
+  placement:
+    description: >
+      Where the kite is put in the world, one row per group of points and bodies
+      placed together, applied as docs/source/conventions.rst defines. A point or
+      body names its row in its `placement` column. With one row and no such
+      column, the row places everything. Without this block the document says
+      nothing about where in the world the kite is.
+    allOf:
+      - $ref: "#/definitions/table"
+      - properties:
+          headers:
+            items:
+              - const: name
+                description: >
+                  Unique name of the placement.
+              - const: base_point
+                description: >
+                  The point that sits at the ground station.
+              - const: base_pos_ENU
+                description: >
+                  Where the base point is put in the world.
+              - const: elevation
+                description: >
+                  Angle above the horizontal of the line from the base point to
+                  the KA origin.
+              - const: azimuth
+                description: >
+                  Bearing of that line.
+              - const: heading
+                description: >
+                  Turn of the kite about that line, 0 where its x axis points
+                  away from the zenith, positive to the right.
+            minItems: 6
+          units:
+            items:
+              - const: "-"
+              - const: "-"
+              - const: m
+              - const: deg
+              - const: deg
+              - const: deg
+            minItems: 6
+          data:
+            items:
+              type: array
+              items:
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/vec3"
+                - type: number
+                  minimum: -90
+                  maximum: 90
+                - type: number
+                  minimum: 0
+                  maximum: 360
+                - type: number
+              minItems: 6
 
   # --------------------------------------------------------------------------
   # MATERIALS
@@ -174,16 +247,16 @@ properties:
                   index-keyed writes the index as a string, "1" upwards.
               - const: fixed
                 description: >
-                  True where the point is held in the world, false where it is
-                  free or moves with its `body`.
+                  True where the point is held where its placement puts it in the
+                  world, false where it is free or moves with its `body`.
               - const: body
                 description: >
                   The rigid body the point is fixed in, moving with it and
                   passing its force and moment on to it; null for a point of its
                   own.
-              - const: pos_ENU
+              - const: pos_KA
                 description: >
-                  Position in the world.
+                  Position in the kite's frame.
             minItems: 4
           units:
             items:
@@ -212,6 +285,12 @@ properties:
         unit: kg
         value:
           $ref: "#/definitions/non_negative"
+      placement:
+        description: >
+          The `placement` row that puts the point in the world.
+        unit: "-"
+        value:
+          $ref: "#/definitions/component_name"
 
   segments:
     description: Straight elastic elements between two points.
@@ -264,10 +343,10 @@ properties:
       Chordwise sections of a wing. A station's points give the local chord,
       from which a reader derives the section's angle of attack and, where the
       points trace the profile, its airfoil shape. A station's local twist
-      is the angle its chord has turned through about the wing's KA y axis from
+      is the angle its chord has turned through about the KA y axis from
       where the document places it, positive pitching the leading edge up. A
       station is not tied to the aerodynamic mesh. A wing's stations run from +y
-      to -y of its KA frame.
+      to -y of the KA frame.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -481,9 +560,9 @@ properties:
   # --------------------------------------------------------------------------
   bodies:
     description: >
-      Rigid bodies. A body's KA frame is
-      oriented as docs/source/conventions.rst defines `_KA` where the body has
-      wing geometry, and as its writer likes where it has no leading edge.
+      Rigid bodies. A body's own frame, `_body`, has the axes of the kite's KA
+      frame where the body has wing geometry, and is oriented as its writer likes
+      where it has no leading edge.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -492,12 +571,13 @@ properties:
               - const: name
                 description: >
                   Unique name of the body.
-              - const: pos_ENU
+              - const: pos_KA
                 description: >
-                  The body's origin, the centre of its own mass, in the world.
-              - const: Q_KA2ENU
+                  The body's origin, the centre of its own mass, in the kite's
+                  frame.
+              - const: Q_body2KA
                 description: >
-                  Rotation from the body's KA frame into the world.
+                  Rotation from the body's own frame into the kite's.
             minItems: 3
           units:
             items:
@@ -520,14 +600,20 @@ properties:
         unit: kg
         value:
           $ref: "#/definitions/non_negative"
-      extra_inertia_KA:
+      extra_inertia_body:
         description: >
-          Inertia tensor of `extra_mass` about the body's origin, in its KA axes.
-          Principal moments are the case where the KA axes are the principal axes
-          and the tensor is diagonal.
+          Inertia tensor of `extra_mass` about the body's origin, in its own axes.
+          Principal moments are the case where those are the principal axes and the
+          tensor is diagonal.
         unit: kg*m^2
         value:
           $ref: "#/definitions/matrix3"
+      placement:
+        description: >
+          The `placement` row that puts the body in the world.
+        unit: "-"
+        value:
+          $ref: "#/definitions/component_name"
 
   tubes:
     description: >

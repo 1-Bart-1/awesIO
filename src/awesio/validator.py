@@ -72,6 +72,66 @@ def optional_columns(validator, columns, instance, schema):
                 yield error
 
 
+def column(table, header):
+    """The values under `header` in a headers/units/data table, or None where it has no
+    such column."""
+    if not isinstance(table, dict) or header not in table.get("headers", []):
+        return None
+    i = table["headers"].index(header)
+    return [row[i] for row in table.get("data", []) if isinstance(row, list) and i < len(row)]
+
+
+def origin_at_zero(validator, enabled, instance, schema):
+    """The `originAtZero` keyword: `metadata.origin_point` names a point at the KA
+    origin."""
+    if not (enabled and validator.is_type(instance, "object")):
+        return
+    origin = instance.get("metadata", {}).get("origin_point")
+    if origin is None:
+        return
+    points = instance.get("points")
+    positions = dict(zip(column(points, "name") or [], column(points, "pos_KA") or []))
+    if origin not in positions:
+        yield jsonschema.ValidationError(
+            f"origin_point {origin!r} is not a point", path=["metadata", "origin_point"]
+        )
+    elif positions[origin] != [0, 0, 0]:
+        yield jsonschema.ValidationError(
+            f"origin_point {origin!r} is at {positions[origin]}, not [0, 0, 0]",
+            path=["metadata", "origin_point"],
+        )
+
+
+def placements_resolve(validator, enabled, instance, schema):
+    """The `placementsResolve` keyword: every `placement` row's base point is a point,
+    and every point and body names a `placement` row, which it may leave unsaid where
+    there is only one."""
+    if not (enabled and validator.is_type(instance, "object")):
+        return
+    placement = instance.get("placement")
+    placements = column(placement, "name") or []
+    points = column(instance.get("points"), "name") or []
+    for i, base_point in enumerate(column(placement, "base_point") or []):
+        if base_point not in points:
+            yield jsonschema.ValidationError(
+                f"base_point {base_point!r} is not a point", path=["placement", "data", i]
+            )
+    for block in ("points", "bodies"):
+        named = column(instance.get(block), "placement")
+        if named is None:
+            if len(placements) > 1 and column(instance.get(block), "name"):
+                yield jsonschema.ValidationError(
+                    f"{block} name none of the {len(placements)} placement rows",
+                    path=[block],
+                )
+            continue
+        for i, name in enumerate(named):
+            if name not in placements:
+                yield jsonschema.ValidationError(
+                    f"placement {name!r} is not a placement row", path=[block, "data", i]
+                )
+
+
 def _enforce_no_additional_properties(schema):
     """Recursively set additionalProperties: false for all objects in the schema"""
     if isinstance(schema, dict):
@@ -161,7 +221,8 @@ def _jsonschema_validate_modified(instance, schema, cls=None, *args, **kwargs):
     if cls is None:
         cls = jsonschema.validators.extend(
             jsonschema.validators.validator_for(schema),
-            {"rowsMatchHeaders": rows_match_headers, "optionalColumns": optional_columns},
+            {"rowsMatchHeaders": rows_match_headers, "optionalColumns": optional_columns,
+             "originAtZero": origin_at_zero, "placementsResolve": placements_resolve},
         )
 
     cls.check_schema(schema)

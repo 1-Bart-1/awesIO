@@ -88,9 +88,13 @@ right-handed and in metres. The frames are those of `KiteUtils.jl
 <https://opensourceawe.github.io/KiteUtils.jl/dev/reference_frames/>`_.
 
 ``_KA``
-   A body's own frame: x from the leading to the trailing edge, y from the right to the
+   The kite's frame: x from the leading to the trailing edge, y from the right to the
    left tip, z up. Right and left are as seen looking at the kite from the front, so a
-   turn to the right is a positive rotation about z.
+   turn to the right is a positive rotation about z. Its origin is the point a document
+   names as its origin, the control unit of a soft kite.
+
+``_body``
+   A rigid body's own frame, with its origin at the body's centre of mass.
 
 ``_ENU``
    The world: x east, y north, z up, with its origin at the tether exit point of the
@@ -105,3 +109,77 @@ A bearing is a horizontal direction in ENU, the angle from north (``+y``) toward
 (``+x``): north is 0, east is 90. That is clockwise seen from above, a negative
 rotation about ``z``. A wind direction is the bearing the wind blows from, so a westerly
 wind has direction 270.
+
+Placing a kite in the world
+---------------------------
+
+A kite is written in its ``_KA`` frame, and a **placement** puts it in ``_ENU``. A
+placement row gives a base point ``b``, which sits at the ground station, the base
+position ``g`` in ENU, an elevation ``ε``, an azimuth ``φ`` and a heading ``ψ``, all in
+degrees. The elevation is the angle of the line from the base point to the kite above
+the horizontal. The azimuth is that line's bearing. The heading turns the kite about
+that line: it is 0 where the kite's x axis points away from the zenith, and a positive
+heading is a turn to the right.
+
+A row is applied to every point and body it places in three steps: translate the kite
+so that ``b`` is at ``g`` with its axes along ENU's, rotate it about ``b`` so that the
+line from ``b`` to the KA origin has the elevation and the azimuth, then turn it about
+that line by the heading. Together they are one rotation ``R`` about ``b``: a position
+``p_KA`` and the rotation matrix ``R_body2KA`` of a body's ``Q_body2KA`` are placed at
+
+.. math::
+
+   p_{ENU} = g + R\,(p_{KA} - b_{KA}), \qquad R_{body2ENU} = R\,R_{body2KA}
+
+where ``R = R_ψ R_ε`` is built from unit vectors as follows. ``Rot(k, θ)`` is the
+right-handed rotation by ``θ`` about the unit vector ``k``, ``Rot(k, θ) v = v cos θ +
+(k × v) sin θ + k (k · v)(1 − cos θ)``.
+
+1. **The line.** ``u = −b_KA / |b_KA|`` is the direction from the base point to the
+   origin, and ``r = [cos ε sin φ, cos ε cos φ, sin ε]`` the direction it is placed
+   along. A base point at the origin is an error.
+2. **Elevation and azimuth.** ``R_ε = Rot((u × r)/|u × r|, acos(u · r))``, the
+   smallest rotation taking ``u`` onto ``r``. Where ``u = r`` it is the identity. Where
+   ``u = −r`` it is ``Rot(k, π)`` with ``k = (u × e)/|u × e|``, where ``e`` is ``[1, 0,
+   0]`` if ``|u_x| < 0.9`` and ``[0, 1, 0]`` otherwise.
+3. **Heading.** At ``r`` the tangent axes are ``y_t = [−r_y, r_x, 0]/|[−r_y, r_x, 0]|``,
+   or ``[0, 1, 0]`` where ``r`` is vertical, and ``x_t = y_t × r``, which points away
+   from the zenith. The kite's x axis after step 2 is ``a = R_ε [1, 0, 0]``, at the
+   heading ``ψ_0 = atan2(a · y_t, a · x_t)``. Then ``R_ψ = Rot(r, ψ − ψ_0)``.
+
+This is how SymbolicAWEModels.jl places a kite, except that it measures the azimuth
+from east rather than north, and the heading from a reference body's x axis rather
+than the kite's.
+
+Worked example
+~~~~~~~~~~~~~~
+
+A control unit at the origin, the ground anchor 100 m below it and a point at the
+left tip, placed with the anchor at the ENU origin, the kite east of it at 60°
+elevation and turned 90° to the right:
+
+.. code-block:: yaml
+
+   placement:
+     headers: [name, base_point, base_pos_ENU, elevation, azimuth, heading]
+     units: [-, -, m, deg, deg, deg]
+     data:
+       - [kite, ground, [0.0, 0.0, 0.0], 60.0, 90.0, 90.0]
+   points:
+     headers: [name, pos_KA]
+     units: [-, m]
+     data:
+       - [kcu, [0.0, 0.0, 0.0]]
+       - [ground, [0.0, 0.0, -100.0]]
+       - [tip, [0.5, 4.0, 2.0]]
+
+``R_ε`` turns the kite 30° about north, so its x axis points along ``x_t`` and
+``ψ_0 = 0``; ``R_ψ`` then turns it 90° about ``r``, which points the kite's x axis
+north. The points land at
+
+.. code-block:: yaml
+
+   pos_ENU:
+     kcu: [50.0, 0.0, 86.603]
+     ground: [0.0, 0.0, 0.0]
+     tip: [47.536, 0.5, 90.335]

@@ -1,15 +1,20 @@
 """The rules docs/source/conventions.rst states for every awesIO file, checked on every
 schema's example."""
 
+import math
+import re
 import warnings
 from pathlib import Path
 
+import numpy as np
 import pytest
+from ruamel.yaml import YAML
 
 from awesio.validator import validate
 from awesio.yaml import load_yaml
 
 EXAMPLES = Path(__file__).parent.parent / "examples"
+CONVENTIONS = Path(__file__).parent.parent / "docs/source/conventions.rst"
 OPERATIONAL_CONSTRAINTS = (
     "ground_gen/soft_kite_pumping_ground_gen_operational_constraints.yml"
 )
@@ -65,3 +70,51 @@ def test_terrain_zones_are_bearings_in_degrees():
     constraints["terrain_constraints"]["azimuth_zones"][-1]["azimuth_range"][1] = 361.0
     [warning] = validation_warnings(constraints)
     assert "361.0 is greater than the maximum of 360" in warning
+
+
+def rotation(axis, angle):
+    """Right-handed rotation by `angle` [rad] about the unit vector `axis`."""
+    cross = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
+    return np.eye(3) + math.sin(angle) * cross + (1 - math.cos(angle)) * cross @ cross
+
+
+def placement_rotation(base_KA, elevation, azimuth, heading):
+    """`R` of a placement row, step by step as the conventions page defines it."""
+    elevation, azimuth, heading = np.radians([elevation, azimuth, heading])
+    line = -base_KA / np.linalg.norm(base_KA)
+    radial = np.array([math.cos(elevation) * math.sin(azimuth),
+                       math.cos(elevation) * math.cos(azimuth), math.sin(elevation)])
+    axis = np.cross(line, radial)
+    if np.linalg.norm(axis) > 1e-12:
+        to_radial = rotation(axis / np.linalg.norm(axis), math.acos(line @ radial))
+    elif line @ radial > 0:
+        to_radial = np.eye(3)
+    else:
+        reference = [1, 0, 0] if abs(line[0]) < 0.9 else [0, 1, 0]
+        normal = np.cross(line, reference)
+        to_radial = rotation(normal / np.linalg.norm(normal), math.pi)
+    horizontal = np.array([-radial[1], radial[0], 0.0])
+    y_t = (horizontal / np.linalg.norm(horizontal) if np.linalg.norm(horizontal) > 1e-12
+           else np.array([0.0, 1.0, 0.0]))
+    x_t = np.cross(y_t, radial)
+    x_kite = to_radial[:, 0]
+    current = math.atan2(x_kite @ y_t, x_kite @ x_t)
+    return rotation(radial, heading - current) @ to_radial
+
+
+def worked_example():
+    """The placement, points and ENU result of the conventions page's worked example."""
+    section = CONVENTIONS.read_text().split("Worked example\n~~~")[1]
+    blocks = re.findall(r"code-block:: yaml\n\n((?:   .*\n|\n)+)", section)
+    document, result = (YAML(typ="safe").load(block) for block in blocks)
+    return document, result["pos_ENU"]
+
+
+def test_the_worked_example_lands_where_the_page_says():
+    document, pos_ENU = worked_example()
+    [[_, base_point, base_pos, elevation, azimuth, heading]] = document["placement"]["data"]
+    pos_KA = {name: np.array(position) for name, position in document["points"]["data"]}
+    R = placement_rotation(pos_KA[base_point], elevation, azimuth, heading)
+    for name, position in pos_KA.items():
+        placed = np.array(base_pos) + R @ (position - pos_KA[base_point])
+        assert placed == pytest.approx(pos_ENU[name], abs=5e-4), name
