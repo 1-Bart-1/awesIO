@@ -80,8 +80,9 @@ Materials and their laws
 ------------------------
 
 Segments, tubes and a wing's canopy each name a row of ``materials`` rather than
-carry a stiffness of their own. A material is a stiffness ``law`` and that law's
-``parameters``, one mapping in one cell:
+carry a stiffness of their own. A solver needs the materials to build the elements;
+a viewer does not. A material is a stiffness ``law`` and that law's ``parameters``,
+one mapping in one cell:
 
 .. code-block:: yaml
 
@@ -92,12 +93,15 @@ carry a stiffness of their own. A material is a stiffness ``law`` and that law's
        - [dyneema, linear, {density: 970.0, youngs_modulus: 5.5e+10}]
        - [ripstop, membrane, {areal_density: 0.17, membrane_stiffness: 1000.0}]
 
-The schema defines no law, so a material may use any one. A law is the name of a
-model its readers implement, and that model fixes the names and units of its
-parameters. The file carries every number the model needs, such as the nineteen
-correlation constants of a Breukels tube, rather than leaving them to the reader. A
-reader that does not implement a material's law fails on the elements naming it
-rather than substituting another.
+The schema defines the laws more than one tool implements: ``linear`` for a line,
+``membrane`` for canopy fabric and ``breukels2011`` for an inflated tube. Each fixes
+the names and units of its parameters and states the curve they describe, so
+a reader that has never met the law evaluates it from the schema alone.
+``breukels2011`` carries its nineteen correlation constants rather than standing for
+them. Any other law is free: its name is a model its readers implement, which fixes
+its parameters, and the file still carries every number that model needs. A reader
+that does not implement a material's law fails on the elements naming it rather than
+substituting another.
 
 Wings, their stations and their canopy
 ---------------------------------------
