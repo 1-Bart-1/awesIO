@@ -397,10 +397,10 @@ winches:
     - [winch, [tether], ground_anchor, 1.0, 0.11]
 
 wings:
-  headers: [name, canopy_material, pos_ENU]
-  units: [-, -, m]
+  headers: [name, canopy_material, pos_ENU, Q_KA2ENU]
+  units: [-, -, m, -]
   data:
-    - [wing, v3_canopy, [0.0, 0.0, 250.0]]
+    - [wing, v3_canopy, [0.0, 0.0, 250.0], [1.0, 0.0, 0.0, 0.0]]
 
 canopy_faces:
   headers: [name, wing, points]

@@ -127,10 +127,15 @@ def test_n_points_agrees_with_the_points_block(structure):
     assert structure["metadata"]["n_points"] == len(structure["points"]["data"])
 
 
-def test_body_frames_are_unit_quaternions(structure):
+def test_body_and_wing_frames_are_unit_quaternions(structure):
     """Draft-07 can hold `Q_KA2ENU` to four numbers but not to unit length."""
-    for name, _, frame, *_ in rows(structure, "bodies"):
-        assert math.isclose(math.hypot(*frame), 1.0, abs_tol=1e-12), name
+    for block in ("bodies", "wings"):
+        table = structure.get(block, {"headers": [], "data": []})
+        if "Q_KA2ENU" not in table["headers"]:
+            continue
+        i = table["headers"].index("Q_KA2ENU")
+        for row in table["data"]:
+            assert math.isclose(math.hypot(*row[i]), 1.0, abs_tol=1e-12), row[0]
 
 
 def test_body_inertia_is_symmetric(structure):
@@ -335,6 +340,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["canopy_faces"]["data"][0].__setitem__(1, None)),
         ("a wing origin in millimetres",
          lambda d: d["wings"]["units"].__setitem__(2, "mm")),
+        ("a wing frame of three numbers",
+         lambda d: d["wings"]["data"][0][3].pop()),
     ],
 )
 def test_malformed_structures_are_rejected(beam, label, mutate):
