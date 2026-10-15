@@ -38,9 +38,10 @@ description: >
   A column's suffix names the frame of its vectors and a rotation is named
   `Q_<from>2<to>`, as docs/source/conventions.rst defines them.
 
-  Positions are in the ENU world frame, where the system is placed. How it moves
-  from there — positions, velocities, forces, twist angles, reel-out — is live
-  state and is never described here.
+  Positions are in the ENU world frame, by convention with the kite at 90°
+  elevation and 0° heading, and each wing says where its own KA frame is in
+  it. How the system moves from there — positions, velocities, forces, twist
+  angles, reel-out — is live state and is never described here.
 
 type: object
 required:
@@ -421,17 +422,29 @@ properties:
               - const: name
                 description: >
                   Unique name of the wing.
-            minItems: 1
+              - const: pos_ENU
+                description: >
+                  The origin of the wing's KA frame, the frame its aerodynamic
+                  mesh is drawn in, in the world. A position, not necessarily a
+                  point.
+              - const: Q_KA2ENU
+                description: >
+                  Rotation from the wing's KA frame into the world.
+            minItems: 3
           units:
             items:
               - const: "-"
-            minItems: 1
+              - const: m
+              - const: "-"
+            minItems: 3
           data:
             items:
               type: array
               items:
                 - $ref: "#/definitions/component_name"
-              minItems: 1
+                - $ref: "#/definitions/vec3"
+                - $ref: "#/definitions/quaternion"
+              minItems: 3
     optionalColumns:
       canopy_material:
         description: >
