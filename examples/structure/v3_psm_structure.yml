@@ -2,7 +2,7 @@ metadata:
   name: v3_kite_psm
   description: "Resolved structure of the TU Delft V3 kite as V3Kite.jl's particle-lattice project builds it: a bridled soft wing whose shape the particle lattice carries, with no rigid body."
   note: "The V3 kite of OpenSourceAWE/V3Kite.jl@973a818a `data/system_psm.yaml`, placed straight above its ground anchor at 0° heading. `wing_tube` is a linear line standing in for the lattice springs that carry the wing's shape, at their 1e6 N stiffness. `v3_canopy` is the beam model's fabric, standing in for V3Kite's canopy wires; its areal_density is zero because the points' extra_mass already holds the 170 g/m^2 fabric of awegroup/TUDELFT_V3_KITE@6d620ba, as V3Kite carries it."
-  awesIO_version: 2.0.0
+  awesIO_version: 1.0.0
   schema: "structure_schema.yml"
   n_points: 44
   connectivity_sha: 4733b55552f94a6cc4084ae7a8e95589a47429d393a37c5daf3e5c5deefe53eb
