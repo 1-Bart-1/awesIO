@@ -2,7 +2,7 @@ metadata:
   name: v3_kite_beam
   description: "Resolved structure of the TU Delft V3 kite as V3Kite.jl's Timoshenko-beam project builds it: the same bridle and tether on a leading-edge tube and struts of rigid bodies joined by tubes, with the canopy spread over them."
   note: "The V3 kite of OpenSourceAWE/V3Kite.jl@973a818a `data/system_beam.yaml`, placed straight above its ground anchor at 0° heading. V3Kite's massless frame, which carries the wing_ctrl points and the bridle's 40 attachment points, is SymbolicAWEModels' own model and is not written: each attachment point rides on a body of the nearest tube, and each wing_ctrl point at a tube on that tube's body. `v3_canopy` stands in for V3Kite's canopy springs: its membrane_stiffness is their 1000 N/m rate k/l0, a value chosen in their place rather than an equivalent, as a spring rate and E·t only share a unit; its areal_density is zero because the wing's extra_mass already holds the 170 g/m^2 fabric of awegroup/TUDELFT_V3_KITE@6d620ba, as V3Kite carries it. `v3_tube` holds the Breukels constants of OpenSourceAWE/SymbolicAWEModels.jl `tube_laws.jl`."
-  awesIO_version: 1.0.0
+  awesIO_version: 0.1.0
   schema: "structure_schema.yml"
   n_points: 220
   connectivity_sha: eab01e825d4761b6214a723abf6650ee39fe4359288ba3473e76ac31e3ec263a
