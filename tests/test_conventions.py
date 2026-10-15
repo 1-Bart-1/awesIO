@@ -13,7 +13,7 @@ from awesio.yaml import load_yaml
 
 EXAMPLES = Path(__file__).parent.parent / "examples"
 CONVENTIONS = Path(__file__).parent.parent / "docs/source/conventions.rst"
-STATED_VECTOR = r"``(o|Q_KA2ENU|p_ENU|p_KA) = \[([^\]]+)\]``"
+STATED_VECTOR = r"``(o|p_ENU|p_KA) = \[([^\]]+)\]``"
 OPERATIONAL_CONSTRAINTS = (
     "ground_gen/soft_kite_pumping_ground_gen_operational_constraints.yml"
 )
@@ -71,21 +71,9 @@ def test_terrain_zones_are_bearings_in_degrees():
     assert "361.0 is greater than the maximum of 360" in warning
 
 
-def rotation_matrix(quaternion):
-    """The matrix of a unit quaternion `[w, x, y, z]`, as `v_to = R v_from`."""
-    w, x, y, z = quaternion
-    return [
-        [1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
-        [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
-        [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)],
-    ]
-
-
-def to_wing_frame(pos_ENU, origin, Q_KA2ENU):
-    """`p_KA = Rᵀ (p_ENU − o)`, as the conventions page defines it."""
-    offset = [p - o for p, o in zip(pos_ENU, origin)]
-    columns = zip(*rotation_matrix(Q_KA2ENU))
-    return [sum(r * d for r, d in zip(column, offset)) for column in columns]
+def to_wing_frame(pos_ENU, origin):
+    """`p_KA = p_ENU − o`, as the conventions page defines it."""
+    return [p - o for p, o in zip(pos_ENU, origin)]
 
 
 def test_the_worked_example_lands_where_the_page_says():
@@ -94,8 +82,8 @@ def test_the_worked_example_lands_where_the_page_says():
         name: [float(x) for x in value.split(",")]
         for name, value in re.findall(STATED_VECTOR, page)
     }
-    assert set(stated) == {"o", "Q_KA2ENU", "p_ENU", "p_KA"}
-    pos_KA = to_wing_frame(stated["p_ENU"], stated["o"], stated["Q_KA2ENU"])
+    assert set(stated) == {"o", "p_ENU", "p_KA"}
+    pos_KA = to_wing_frame(stated["p_ENU"], stated["o"])
     assert all(math.isclose(a, b, abs_tol=1e-12) for a, b in zip(pos_KA, stated["p_KA"]))
 
 
@@ -104,10 +92,10 @@ def test_the_worked_example_lands_where_the_page_says():
     [("v3_beam_structure.yml", "ground_anchor"), ("v3_psm_structure.yml", "39")],
 )
 def test_the_v3_tether_hangs_straight_down_in_the_wing_frame(path, anchor):
-    """The V3 kite is authored straight above its ground anchor, which its wing's frame
-    puts on the wing's negative z axis."""
+    """The V3 kite is placed at 90° elevation, which puts its ground anchor on its
+    wing's negative z axis."""
     structure = load_yaml(EXAMPLES / "structure" / path)
-    [(_, _, origin, Q_KA2ENU)] = structure["wings"]["data"]
+    [(_, _, origin)] = structure["wings"]["data"]
     pos_ENU = {row[0]: row[3] for row in structure["points"]["data"]}
-    x, y, z = to_wing_frame(pos_ENU[anchor], origin, Q_KA2ENU)
+    x, y, z = to_wing_frame(pos_ENU[anchor], origin)
     assert math.isclose(x, 0, abs_tol=1e-9) and math.isclose(y, 0, abs_tol=1e-9) and z < 0

@@ -103,18 +103,13 @@ A rotation reads ``Q_<from>2<to>``: a unit quaternion ``q``, scalar first
 components in ``<to>``, ``v_to = q v_from q*``. Its rotation matrix has ``<from>``'s
 axes, written in ``<to>``, as its columns.
 
-A document written in ENU gives a wing's frame as the position ``o`` of its origin and
-the rotation ``Q_KA2ENU``, whose matrix is ``R``. A position ``p`` in ENU is then, in the
-wing's frame,
+A structure document places its kite at 90° elevation and 0° heading: straight above the tether exit point, with its leading-to-trailing edge pointing east. A wing's KA axes are then ENU's, so a position ``p`` in ENU is, in the frame of a wing whose origin is at ``o``,
 
 .. math::
 
-   p_{KA} = R^T (p_{ENU} - o)
+   p_{KA} = p_{ENU} - o
 
-For example, a wing with its origin at ``o = [3, 4, 50]`` and its frame turned 90° about
-``z``, ``Q_KA2ENU = [0.7071067811865476, 0, 0, 0.7071067811865476]``, has the point at
-``p_ENU = [3, 6, 51]`` at ``p_KA = [2, 0, 1]``: two metres behind its origin along x and
-one above it.
+For example, a wing with its origin at ``o = [0, 0, 100]`` has the point at ``p_ENU = [2, 0, 101]`` at ``p_KA = [2, 0, 1]``: two metres behind its origin along x and one above it.
 
 A bearing is a horizontal direction in ENU, the angle from north (``+y``) towards east
 (``+x``): north is 0, east is 90. That is clockwise seen from above, a negative

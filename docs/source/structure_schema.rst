@@ -176,7 +176,7 @@ unit or a single tube has no leading edge to orient it by, so its writer
 orients that frame as it likes and ``Q_KA2ENU`` is where the file says which
 orientation it chose.
 
-**A wing may say where its own frame is.** A ``wings`` row's ``pos_ENU`` is the origin of the wing's KA frame, a position that need not be a point, and its ``Q_KA2ENU`` the frame's orientation. That is the frame the tools that design a kite draw it in and its aerodynamic mesh is drawn in, so several wings of one shape share one mesh, and a reader takes positions into it as the :doc:`conventions` define. Where and how a kite is flown, its elevation, azimuth and heading, follows from the positions and is not stated.
+**A wing may say where its own frame is.** The kite is placed at 90° elevation and 0° heading, as the :doc:`conventions` define, so a wing's KA axes are ENU's and a ``wings`` row's ``pos_ENU`` is all a reader needs: the origin of the wing's frame, a position that need not be a point. That is the frame the tools that design a kite draw it in and its aerodynamic mesh is drawn in, so several wings of one shape share one mesh. Where and how a kite is flown is state, and not stated here.
 
 What is not described here
 --------------------------
@@ -190,7 +190,7 @@ Examples
 --------
 
 ``examples/structure`` holds two models of the same kite — the TU Delft V3, a bridled
-soft wing, placed at 70° elevation. They share the bridle, the tether and the single
+soft wing, placed straight above its ground anchor. They share the bridle, the tether and the single
 winch, and differ in what carries the wing:
 
 ``v3_psm_structure.yml``
