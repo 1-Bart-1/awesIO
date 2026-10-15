@@ -130,12 +130,8 @@ def test_n_points_agrees_with_the_points_block(structure):
 def test_body_and_wing_frames_are_unit_quaternions(structure):
     """Draft-07 can hold `Q_KA2ENU` to four numbers but not to unit length."""
     for block in ("bodies", "wings"):
-        table = structure.get(block, {"headers": [], "data": []})
-        if "Q_KA2ENU" not in table["headers"]:
-            continue
-        i = table["headers"].index("Q_KA2ENU")
-        for row in table["data"]:
-            assert math.isclose(math.hypot(*row[i]), 1.0, abs_tol=1e-12), row[0]
+        for name, _, frame, *_ in rows(structure, block):
+            assert math.isclose(math.hypot(*frame), 1.0, abs_tol=1e-12), name
 
 
 def test_body_inertia_is_symmetric(structure):
@@ -208,9 +204,10 @@ def test_every_reference_resolves_to_a_named_row(structure):
         assert {start, end} <= points and set(members) <= segments
     for name, pair, _, _, material, *_ in rows(structure, "tubes"):
         assert set(pair) <= bodies and material in materials, name
-    for name, material, *_ in rows(structure, "wings"):
+    canopies = {name: material for name, _, _, material, *_ in rows(structure, "wings")}
+    for name, material in canopies.items():
         assert material is None or material in materials, name
-    with_a_canopy = {name for name, material, *_ in rows(structure, "wings") if material}
+    with_a_canopy = {name for name, material in canopies.items() if material}
     for name, wing, corners, *_ in rows(structure, "canopy_faces"):
         assert wing in with_a_canopy and set(corners) <= points, name
 
@@ -335,13 +332,15 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("a canopy face with five corners",
          lambda d: d["canopy_faces"]["data"][0][2].append("wing_le_8")),
         ("a canopy material given as a number",
-         lambda d: d["wings"]["data"][0].__setitem__(1, 42)),
+         lambda d: d["wings"]["data"][0].__setitem__(3, 42)),
         ("a canopy face without its wing",
          lambda d: d["canopy_faces"]["data"][0].__setitem__(1, None)),
+        ("a wing without its origin", lambda d: drop_column(d["wings"], "pos_ENU")),
+        ("a wing without its frame", lambda d: drop_column(d["wings"], "Q_KA2ENU")),
         ("a wing origin in millimetres",
-         lambda d: d["wings"]["units"].__setitem__(2, "mm")),
+         lambda d: d["wings"]["units"].__setitem__(1, "mm")),
         ("a wing frame of three numbers",
-         lambda d: d["wings"]["data"][0][3].pop()),
+         lambda d: d["wings"]["data"][0][2].pop()),
     ],
 )
 def test_malformed_structures_are_rejected(beam, label, mutate):
@@ -377,7 +376,7 @@ def test_a_material_may_name_any_law_with_any_parameters(beam):
 
 
 def test_a_wing_may_have_no_canopy(structure):
-    structure["wings"]["data"][0][1] = None
+    structure["wings"]["data"][0][3] = None
     structure.pop("canopy_faces")
     assert_valid(structure)
 

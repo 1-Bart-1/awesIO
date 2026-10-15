@@ -107,7 +107,7 @@ def test_the_v3_tether_hangs_straight_down_in_the_wing_frame(path, anchor):
     """The V3 kite is placed at 90° elevation, which puts its ground anchor on its
     wing's negative z axis."""
     structure = load_yaml(EXAMPLES / "structure" / path)
-    [(_, _, origin, Q_KA2ENU)] = structure["wings"]["data"]
+    [(_, origin, Q_KA2ENU, _)] = structure["wings"]["data"]
     pos_ENU = {row[0]: row[3] for row in structure["points"]["data"]}
     x, y, z = to_wing_frame(pos_ENU[anchor], origin, Q_KA2ENU)
     assert math.isclose(x, 0, abs_tol=1e-9) and math.isclose(y, 0, abs_tol=1e-9) and z < 0

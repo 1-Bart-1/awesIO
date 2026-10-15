@@ -176,7 +176,7 @@ unit or a single tube has no leading edge to orient it by, so its writer
 orients that frame as it likes and ``Q_KA2ENU`` is where the file says which
 orientation it chose.
 
-**A wing may say where its own frame is.** A ``wings`` row's ``pos_ENU`` is the origin of the wing's KA frame, a position that need not be a point, and its ``Q_KA2ENU`` the frame's orientation. That is the frame the tools that design a kite draw it in and its aerodynamic mesh is drawn in, so several wings of one shape share one mesh, and a reader takes positions into it as the :doc:`conventions` define. By convention the kite is placed at 90° elevation and 0° heading, so a single wing's rotation is the identity. Where and how a kite is flown is state, and not stated here.
+**Each wing says where its own frame is.** A ``wings`` row's ``pos_ENU`` is the origin of the wing's KA frame, a position that need not be a point, and its ``Q_KA2ENU`` the frame's orientation. That is the frame the tools that design a kite draw it in and its aerodynamic mesh is drawn in, so several wings of one shape share one mesh, and a reader takes positions into it as the :doc:`conventions` define. By convention the kite is placed at 90° elevation and 0° heading, so a single wing's rotation is the identity. Where and how a kite is flown is state, and not stated here.
 
 What is not described here
 --------------------------
