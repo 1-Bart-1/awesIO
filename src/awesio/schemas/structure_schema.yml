@@ -38,21 +38,16 @@ description: >
   A column's suffix names the frame of its vectors and a rotation is named
   `Q_<from>2<to>`, as docs/source/conventions.rst defines them.
 
-  Positions are in the ENU world frame, where the system is placed, and the
-  `kites` rows say where each kite's own KA frame is in it. How the system moves
-  from there — positions, velocities, forces, twist angles, reel-out — is live
-  state and is never described here.
-
-  awesio.validator enforces this schema's own keywords, which other draft-07
-  validators skip: `rowsMatchHeaders` and `optionalColumns` within a table, and
-  `kitesResolve` across blocks.
+  Positions are in the ENU world frame, where the system is placed, and a wing
+  may say where its own KA frame is in it. How the system moves from there —
+  positions, velocities, forces, twist angles, reel-out — is live state and is
+  never described here.
 
 type: object
 required:
   - metadata
   - points
   - segments
-kitesResolve: true
 
 properties:
   metadata:
@@ -167,42 +162,6 @@ properties:
   # --------------------------------------------------------------------------
   # POINTS AND THE ELEMENTS BUILT ON THEM
   # --------------------------------------------------------------------------
-  kites:
-    description: >
-      Where each kite's own KA frame is in the world, one row per kite: a wing
-      with its bridle and, where it has one, its control unit. A reader takes
-      a position into a kite's frame as docs/source/conventions.rst defines.
-      Points and bodies name their kite in their `kite` column.
-    allOf:
-      - $ref: "#/definitions/table"
-      - properties:
-          headers:
-            items:
-              - const: name
-                description: >
-                  Unique name of the kite.
-              - const: pos_ENU
-                description: >
-                  The origin of the kite's KA frame, in the world.
-              - const: Q_KA2ENU
-                description: >
-                  Rotation from the kite's KA frame into the world.
-            minItems: 3
-          units:
-            items:
-              - const: "-"
-              - const: m
-              - const: "-"
-            minItems: 3
-          data:
-            items:
-              type: array
-              items:
-                - $ref: "#/definitions/component_name"
-                - $ref: "#/definitions/vec3"
-                - $ref: "#/definitions/quaternion"
-              minItems: 3
-
   points:
     description: Mass points.
     allOf:
@@ -254,14 +213,6 @@ properties:
         unit: kg
         value:
           $ref: "#/definitions/non_negative"
-      kite:
-        description: >
-          The `kites` row the point belongs to, or null for one outside every
-          kite. Without this column, a document with one kite puts every point
-          in it.
-        unit: "-"
-        value:
-          $ref: "#/definitions/optional_name"
 
   segments:
     description: Straight elastic elements between two points.
@@ -490,6 +441,19 @@ properties:
         unit: "-"
         value:
           $ref: "#/definitions/optional_name"
+      pos_ENU:
+        description: >
+          The origin of the wing's KA frame, the frame its aerodynamic mesh is
+          drawn in, in the world. A position, not necessarily a point.
+        unit: m
+        value:
+          $ref: "#/definitions/vec3"
+      Q_KA2ENU:
+        description: >
+          Rotation from the wing's KA frame into the world.
+        unit: "-"
+        value:
+          $ref: "#/definitions/quaternion"
 
   canopy_faces:
     description: >
@@ -578,14 +542,6 @@ properties:
         unit: kg*m^2
         value:
           $ref: "#/definitions/matrix3"
-      kite:
-        description: >
-          The `kites` row the body belongs to, or null for one outside every
-          kite. Without this column, a document with one kite puts every body
-          in it.
-        unit: "-"
-        value:
-          $ref: "#/definitions/optional_name"
 
   tubes:
     description: >
@@ -653,7 +609,9 @@ definitions:
       `optionalColumns` names has that unit and those values wherever it
       stands. Every header is a distinct string and every unit a non-empty
       one, and the units and every row are exactly as long as the headers.
-      docs/source/conventions.rst gives each unit's spelling.
+      awesio.validator enforces `rowsMatchHeaders` and `optionalColumns`,
+      which other draft-07 validators skip. docs/source/conventions.rst gives
+      each unit's spelling.
     type: object
     required:
       - headers

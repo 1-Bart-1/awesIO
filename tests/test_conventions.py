@@ -81,7 +81,7 @@ def rotation_matrix(quaternion):
     ]
 
 
-def to_kite_frame(pos_ENU, origin, Q_KA2ENU):
+def to_wing_frame(pos_ENU, origin, Q_KA2ENU):
     """`p_KA = Rᵀ (p_ENU − o)`, as the conventions page defines it."""
     offset = [p - o for p, o in zip(pos_ENU, origin)]
     columns = zip(*rotation_matrix(Q_KA2ENU))
@@ -95,7 +95,7 @@ def test_the_worked_example_lands_where_the_page_says():
         for name, value in re.findall(STATED_VECTOR, page)
     }
     assert set(stated) == {"o", "Q_KA2ENU", "p_ENU", "p_KA"}
-    pos_KA = to_kite_frame(stated["p_ENU"], stated["o"], stated["Q_KA2ENU"])
+    pos_KA = to_wing_frame(stated["p_ENU"], stated["o"], stated["Q_KA2ENU"])
     assert all(math.isclose(a, b, abs_tol=1e-12) for a, b in zip(pos_KA, stated["p_KA"]))
 
 
@@ -103,11 +103,11 @@ def test_the_worked_example_lands_where_the_page_says():
     "path, anchor",
     [("v3_beam_structure.yml", "ground_anchor"), ("v3_psm_structure.yml", "39")],
 )
-def test_the_v3_tether_hangs_straight_down_in_the_kite_frame(path, anchor):
-    """The V3 kite is authored straight above its ground anchor, which its kites row
-    puts on the kite's negative z axis."""
+def test_the_v3_tether_hangs_straight_down_in_the_wing_frame(path, anchor):
+    """The V3 kite is authored straight above its ground anchor, which its wing's frame
+    puts on the wing's negative z axis."""
     structure = load_yaml(EXAMPLES / "structure" / path)
-    [(_, origin, Q_KA2ENU)] = structure["kites"]["data"]
+    [(_, _, origin, Q_KA2ENU)] = structure["wings"]["data"]
     pos_ENU = {row[0]: row[3] for row in structure["points"]["data"]}
-    x, y, z = to_kite_frame(pos_ENU[anchor], origin, Q_KA2ENU)
+    x, y, z = to_wing_frame(pos_ENU[anchor], origin, Q_KA2ENU)
     assert math.isclose(x, 0, abs_tol=1e-9) and math.isclose(y, 0, abs_tol=1e-9) and z < 0

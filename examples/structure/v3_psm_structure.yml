@@ -15,12 +15,6 @@ materials:
     - [wing_tube, linear, {density: 724.0, youngs_modulus: 1.2732395447351628e+12}]
     - [v3_canopy, membrane, {areal_density: 0.0, membrane_stiffness: 1000.0}]
 
-kites:
-  headers: [name, pos_ENU, Q_KA2ENU]
-  units: [-, m, -]
-  data:
-    - [v3, [34.202014332567, 0.0, 93.969262078591], [0.984807753012, 0.0, 0.173648177667, 0.0]]
-
 points:
   headers: [name, fixed, body, pos_ENU, extra_mass]
   units: [-, -, -, m, kg]
@@ -182,10 +176,10 @@ winches:
     - ["1", ["1"], "39", 1.0, 0.11]
 
 wings:
-  headers: [name, canopy_material]
-  units: [-, -]
+  headers: [name, canopy_material, pos_ENU, Q_KA2ENU]
+  units: [-, -, m, -]
   data:
-    - [wing, v3_canopy]
+    - [wing, v3_canopy, [34.202014332567, 0.0, 93.969262078591], [0.984807753012, 0.0, 0.173648177667, 0.0]]
 
 canopy_faces:
   headers: [name, wing, points]

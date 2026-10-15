@@ -88,10 +88,11 @@ right-handed and in metres. The frames are those of `KiteUtils.jl
 <https://opensourceawe.github.io/KiteUtils.jl/dev/reference_frames/>`_.
 
 ``_KA``
-   A kite's or a body's own frame: x from the leading to the trailing edge, y from the
+   A wing's or a body's own frame: x from the leading to the trailing edge, y from the
    right to the left tip, z up. Right and left are as seen looking at the kite from the
-   front, so a turn to the right is a positive rotation about z. A kite's has its origin
-   where the document puts it, the control unit of a soft kite.
+   front, so a turn to the right is a positive rotation about z. A wing's is the frame
+   its aerodynamic mesh is drawn in, with its origin where the document puts it: the
+   control unit of a soft kite.
 
 ``_ENU``
    The world: x east, y north, z up, with its origin at the tether exit point of the
@@ -102,15 +103,15 @@ A rotation reads ``Q_<from>2<to>``: a unit quaternion ``q``, scalar first
 components in ``<to>``, ``v_to = q v_from q*``. Its rotation matrix has ``<from>``'s
 axes, written in ``<to>``, as its columns.
 
-A document written in ENU gives a kite's frame as the position ``o`` of its origin and
+A document written in ENU gives a wing's frame as the position ``o`` of its origin and
 the rotation ``Q_KA2ENU``, whose matrix is ``R``. A position ``p`` in ENU is then, in the
-kite's frame,
+wing's frame,
 
 .. math::
 
    p_{KA} = R^T (p_{ENU} - o)
 
-For example, a kite with its origin at ``o = [3, 4, 50]`` and its frame turned 90° about
+For example, a wing with its origin at ``o = [3, 4, 50]`` and its frame turned 90° about
 ``z``, ``Q_KA2ENU = [0.7071067811865476, 0, 0, 0.7071067811865476]``, has the point at
 ``p_ENU = [3, 6, 51]`` at ``p_KA = [2, 0, 1]``: two metres behind its origin along x and
 one above it.

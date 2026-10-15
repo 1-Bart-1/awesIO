@@ -72,37 +72,6 @@ def optional_columns(validator, columns, instance, schema):
                 yield error
 
 
-def column(table, header):
-    """The values under `header` in a headers/units/data table, or None where it has no
-    such column."""
-    if not isinstance(table, dict) or header not in table.get("headers", []):
-        return None
-    i = table["headers"].index(header)
-    rows = table.get("data", [])
-    return [row[i] for row in rows if isinstance(row, list) and i < len(row)]
-
-
-def kites_resolve(validator, enabled, instance, schema):
-    """The `kitesResolve` keyword: every point and body names a `kites` row or null in
-    its `kite` column, which it may leave out where there is at most one kite."""
-    if not (enabled and validator.is_type(instance, "object")):
-        return
-    kites = column(instance.get("kites"), "name") or []
-    for block in ("points", "bodies"):
-        named = column(instance.get(block), "kite")
-        if named is None:
-            if len(kites) > 1 and column(instance.get(block), "name"):
-                yield jsonschema.ValidationError(
-                    f"{block} have no kite column for {len(kites)} kites", path=[block]
-                )
-            continue
-        for i, kite in enumerate(named):
-            if kite is not None and kite not in kites:
-                yield jsonschema.ValidationError(
-                    f"kite {kite!r} is not a kites row", path=[block, "data", i]
-                )
-
-
 def _enforce_no_additional_properties(schema):
     """Recursively set additionalProperties: false for all objects in the schema"""
     if isinstance(schema, dict):
@@ -192,11 +161,7 @@ def _jsonschema_validate_modified(instance, schema, cls=None, *args, **kwargs):
     if cls is None:
         cls = jsonschema.validators.extend(
             jsonschema.validators.validator_for(schema),
-            {
-                "rowsMatchHeaders": rows_match_headers,
-                "optionalColumns": optional_columns,
-                "kitesResolve": kites_resolve,
-            },
+            {"rowsMatchHeaders": rows_match_headers, "optionalColumns": optional_columns},
         )
 
     cls.check_schema(schema)

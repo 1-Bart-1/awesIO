@@ -19,12 +19,6 @@ materials:
         C13: 1467.0, C14: 40.908, C15: -191.8, C16: 47.406, C17: -17703.0, C18: 358.05,
         C19: 0.0918}]
 
-kites:
-  headers: [name, pos_ENU, Q_KA2ENU]
-  units: [-, m, -]
-  data:
-    - [v3, [85.505032411216, 0.0, 234.923145799551], [0.984807753012, 0.0, 0.173648177667, 0.0]]
-
 points:
   headers: [name, fixed, body, pos_ENU, extra_mass]
   units: [-, -, -, m, kg]
@@ -403,10 +397,10 @@ winches:
     - [winch, [tether], ground_anchor, 1.0, 0.11]
 
 wings:
-  headers: [name, canopy_material]
-  units: [-, -]
+  headers: [name, canopy_material, pos_ENU, Q_KA2ENU]
+  units: [-, -, m, -]
   data:
-    - [wing, v3_canopy]
+    - [wing, v3_canopy, [85.505032411216, 0.0, 234.923145799551], [0.984807753012, 0.0, 0.173648177667, 0.0]]
 
 canopy_faces:
   headers: [name, wing, points]

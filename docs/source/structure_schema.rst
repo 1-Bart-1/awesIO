@@ -176,7 +176,7 @@ unit or a single tube has no leading edge to orient it by, so its writer
 orients that frame as it likes and ``Q_KA2ENU`` is where the file says which
 orientation it chose.
 
-**The** ``kites`` **block says where each kite's own frame is.** A kite is a wing with its bridle and, where it has one, its control unit; the ``wings`` block holds only the lifting surface. Each row gives the origin of the kite's KA frame in ENU, a position that need not be a point, and ``Q_KA2ENU``, the frame's orientation. That is the frame the tools that design a kite draw it in, and an aerodynamic mesh is drawn in, so a reader takes the kite back into it as the :doc:`conventions` define. A document with several kites has every point and body name its kite in a ``kite`` column, null for one outside every kite such as a ground anchor. With one kite that column may be left out. Where and how a kite is flown, its elevation, azimuth and heading, follows from the positions and is not stated.
+**A wing may say where its own frame is.** A ``wings`` row's ``pos_ENU`` is the origin of the wing's KA frame, a position that need not be a point, and its ``Q_KA2ENU`` the frame's orientation. That is the frame the tools that design a kite draw it in and its aerodynamic mesh is drawn in, so several wings of one shape share one mesh, and a reader takes positions into it as the :doc:`conventions` define. Where and how a kite is flown, its elevation, azimuth and heading, follows from the positions and is not stated.
 
 What is not described here
 --------------------------

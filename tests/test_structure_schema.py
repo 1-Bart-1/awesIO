@@ -39,12 +39,6 @@ def a_point_on_a_body(structure):
     return next(row for row in rows(structure, "points") if row[2] is not None)
 
 
-def a_second_kite(structure):
-    """A copy of the kites row under another name, so the document has two."""
-    kites = structure["kites"]["data"]
-    kites.append(["second", *kites[0][1:]])
-
-
 def append_column(table, header, value, unit=None):
     """Append a column to every row of `table`, leaving its units short without `unit`."""
     table["headers"].append(header)
@@ -133,10 +127,15 @@ def test_n_points_agrees_with_the_points_block(structure):
     assert structure["metadata"]["n_points"] == len(structure["points"]["data"])
 
 
-def test_body_and_kite_frames_are_unit_quaternions(structure):
+def test_body_and_wing_frames_are_unit_quaternions(structure):
     """Draft-07 can hold `Q_KA2ENU` to four numbers but not to unit length."""
-    for name, _, frame, *_ in rows(structure, "bodies") + rows(structure, "kites"):
-        assert math.isclose(math.hypot(*frame), 1.0, abs_tol=1e-12), name
+    for block in ("bodies", "wings"):
+        table = structure.get(block, {"headers": [], "data": []})
+        if "Q_KA2ENU" not in table["headers"]:
+            continue
+        i = table["headers"].index("Q_KA2ENU")
+        for row in table["data"]:
+            assert math.isclose(math.hypot(*row[i]), 1.0, abs_tol=1e-12), row[0]
 
 
 def test_body_inertia_is_symmetric(structure):
@@ -339,14 +338,10 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["wings"]["data"][0].__setitem__(1, 42)),
         ("a canopy face without its wing",
          lambda d: d["canopy_faces"]["data"][0].__setitem__(1, None)),
-        ("a kite origin in millimetres",
-         lambda d: d["kites"]["units"].__setitem__(1, "mm")),
-        ("a point naming a kite that does not exist",
-         lambda d: append_column(d["points"], "kite", "nowhere", unit="-")),
-        ("a body naming a kite that does not exist",
-         lambda d: append_column(d["bodies"], "kite", "nowhere", unit="-")),
-        ("two kites and points naming neither",
-         lambda d: (a_second_kite(d), append_column(d["bodies"], "kite", "v3", unit="-"))),
+        ("a wing origin in millimetres",
+         lambda d: d["wings"]["units"].__setitem__(2, "mm")),
+        ("a wing frame of three numbers",
+         lambda d: d["wings"]["data"][0][3].pop()),
     ],
 )
 def test_malformed_structures_are_rejected(beam, label, mutate):
@@ -356,8 +351,8 @@ def test_malformed_structures_are_rejected(beam, label, mutate):
 
 def test_optional_blocks_may_be_absent(structure):
     """An absent optional block means the same as an empty one."""
-    for block in ("materials", "kites", "spanwise_stations", "pulleys", "tethers",
-                  "winches", "bodies", "tubes", "wings", "canopy_faces"):
+    for block in ("materials", "spanwise_stations", "pulleys", "tethers", "winches",
+                  "bodies", "tubes", "wings", "canopy_faces"):
         structure.pop(block, None)
     for row in structure["points"]["data"]:
         row[2] = None
@@ -391,12 +386,3 @@ def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     """Blocks are addressed by header, so appended columns must not break v1.0."""
     append_column(structure["segments"], "damping_per_stiffness", 0.002, unit="s")
     assert_valid(structure)
-
-
-def test_points_and_bodies_name_their_kite_or_none(beam):
-    """With two kites, every point and body names its kite, or null outside them."""
-    a_second_kite(beam)
-    append_column(beam["points"], "kite", "v3", unit="-")
-    append_column(beam["bodies"], "kite", "second", unit="-")
-    beam["points"]["data"][-1][-1] = None
-    assert_valid(beam)
