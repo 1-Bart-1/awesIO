@@ -365,7 +365,8 @@ def test_the_core_alone_is_a_valid_structure(structure):
         for header in block.get("optionalColumns", {}):
             if name in structure and header in structure[name]["headers"]:
                 drop_column(structure[name], header)
-    drop_column(structure["pulleys"], "efficiency")
+    if "pulleys" in structure:
+        drop_column(structure["pulleys"], "efficiency")
     assert_valid(structure)
 
 
@@ -376,6 +377,8 @@ def test_a_material_may_name_any_law_with_any_parameters(beam):
 
 
 def test_a_wing_may_have_no_canopy(structure):
+    if not rows(structure, "wings"):
+        pytest.skip("no wing to strip the canopy from")
     structure["wings"]["data"][0][3] = None
     structure.pop("canopy_faces")
     assert_valid(structure)

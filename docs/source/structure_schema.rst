@@ -189,9 +189,9 @@ document.
 Examples
 --------
 
-``examples/structure`` holds two models of the same kite — the TU Delft V3, a bridled
-soft wing, placed straight above its ground anchor. They share the bridle, the tether and the single
-winch, and differ in what carries the wing:
+``examples/structure`` holds three models of the same kite — the TU Delft V3, a bridled
+soft wing, placed straight above its ground anchor. The particle and beam models share the
+bridle, the tether and the single winch, and differ in what carries the wing:
 
 ``v3_psm_structure.yml``
    The particle lattice: 44 points, 68 segments and 6 pulleys carry the wing's shape,
@@ -207,6 +207,12 @@ winch, and differ in what carries the wing:
    bridle's 40 attachment points each ride on a body of the nearest tube, within
    0.13 m of it; V3Kite carries them and the ``wing_ctrl_*`` points on a massless
    frame of SymbolicAWEModels.jl's own, which the document leaves out.
+
+``v3_ekf_structure.yml``
+   The kite as EKF-AWE's filter models it, written by its ``structure_document`` from
+   ``system_flown_2019.yaml``: 30 lumped-mass tether elements up to the KCU, and one
+   massless element from there to a point-mass kite. 32 points over 31 segments, and no
+   wing, pulleys or bodies — the coarsest model the schema describes.
 
 ``v3_canopy`` stands in for V3Kite's canopy springs: their 1000 N/m is its
 ``membrane_stiffness``, and its ``areal_density`` is zero because the wing's

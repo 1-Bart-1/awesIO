@@ -26,6 +26,7 @@ FILES_TO_VALIDATE = [
     "examples/system_config/soft_kite_pumping_ground_gen_system.yml",
     "examples/system_config/fixed_wing_multiple_tether_GG_system.yml",
     "examples/structure/v3_beam_structure.yml",
+    "examples/structure/v3_ekf_structure.yml",
     "examples/structure/v3_psm_structure.yml",
 ]
 # ============================================================================
