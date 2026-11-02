@@ -4,8 +4,10 @@ from pathlib import Path, PosixPath, WindowsPath
 from referencing import Registry, Resource
 from referencing.exceptions import NoSuchResource
 import copy
+import hashlib
 import jsonschema
 import jsonschema.validators
+import math
 import warnings
 
 from .yaml import load_yaml
@@ -22,6 +24,8 @@ def retrieve_yaml(uri: str):
 
 
 registry = Registry(retrieve=retrieve_yaml)
+
+TOLERANCE = 1e-9  # relative, for floats a writer summed or printed
 
 
 def rows_match_headers(validator, enabled, instance, schema):
@@ -72,6 +76,94 @@ def optional_columns(validator, columns, instance, schema):
                 yield error
 
 
+def table_rows(document: dict, block: str) -> list[dict]:
+    """The rows of a headers/units/data table as mappings by header; none if it is absent."""
+    table = document.get(block, {"headers": [], "data": []})
+    return [dict(zip(table["headers"], row)) for row in table["data"]]
+
+
+def system_errors(system: dict) -> list[str]:
+    """What a system document gets wrong that its schema cannot say: a material defined
+    twice, or a tether, wing or bridle naming a material it does not define."""
+    names = [material["name"] for material in system["materials"]]
+    errors = [f"material {name!r} is defined twice"
+              for name in sorted({name for name in names if names.count(name) > 1})]
+    components = system["components"]
+    kites = components.get("kites", [])
+    parts = [*components["tethers"], *(kite["wing"] for kite in kites),
+             *(kite["bridle"] for kite in kites if "bridle" in kite)]
+    for part in parts:
+        material = part["structure"].get("material")
+        if material is not None and material not in names:
+            errors.append(f"{part['name']!r} names material {material!r}, not in the system")
+    return errors
+
+
+def structure_errors(structure: dict, system: dict) -> list[str]:
+    """Where a structure disagrees with the system it discretises: a material or tether
+    name that does not resolve, a tether segment not of the tether's diameter, or rest
+    lengths not adding up to the tether's length. A column left out states nothing."""
+    materials = {material["name"] for material in system["materials"]}
+    errors = []
+    for block, column in (("segments", "material"), ("tubes", "material"),
+                          ("wings", "canopy_material")):
+        for row in table_rows(structure, block):
+            material = row.get(column)
+            if material is not None and material not in materials:
+                errors.append(
+                    f"{block} row {row['name']!r} names material {material!r}, "
+                    "not in the system"
+                )
+    tethers = {tether["name"]: tether["structure"]
+               for tether in system["components"]["tethers"]}
+    segments = {row["name"]: row for row in table_rows(structure, "segments")}
+    for row in table_rows(structure, "tethers"):
+        name = row["name"]
+        if name not in tethers:
+            errors.append(f"tether {name!r} is not in the system")
+            continue
+        members = [segments[member] for member in row["segments"] if member in segments]
+        errors += tether_errors(name, tethers[name], members)
+    return errors
+
+
+def tether_errors(name: str, tether: dict, segments: list[dict]) -> list[str]:
+    """Where a tether's segments disagree with the system's diameter and length of it."""
+    errors = [
+        f"tether {name!r} segment {segment['name']!r} has diameter "
+        f"{segment['diameter']}, the system says {tether['diameter']}"
+        for segment in segments
+        if "diameter" in segment and "diameter" in tether
+        and not math.isclose(segment["diameter"], tether["diameter"], rel_tol=TOLERANCE)
+    ]
+    if all("rest_length" in segment for segment in segments):
+        total = sum(segment["rest_length"] for segment in segments)
+        if not math.isclose(total, tether["length"], rel_tol=TOLERANCE):
+            errors.append(
+                f"tether {name!r} segments add up to {total} m, "
+                f"the system says {tether['length']} m"
+            )
+    return errors
+
+
+def check_against_system(structure: dict, system_path: Path) -> None:
+    """Raise a ValueError unless the file at `system_path` is the valid system whose hash
+    `structure` quotes, and `structure` agrees with it."""
+    if not system_path.is_file():
+        raise ValueError(f"system file {system_path} not found")
+    digest = hashlib.sha256(system_path.read_bytes()).hexdigest()
+    if digest != structure["metadata"]["system_sha"]:
+        raise ValueError(
+            f"metadata.system_sha is {structure['metadata']['system_sha']}, "
+            f"but {system_path} hashes to {digest}"
+        )
+    system = load_yaml(system_path)
+    check_document(system, load_schema(system))
+    errors = structure_errors(structure, system)
+    if errors:
+        raise ValueError("\n".join(errors))
+
+
 def _enforce_no_additional_properties(schema):
     """Recursively set additionalProperties: false for all objects in the schema"""
     if isinstance(schema, dict):
@@ -98,17 +190,60 @@ def _enforce_no_additional_properties(schema):
     return schema
 
 
+def load_schema(data: dict, restrictive: bool = False) -> dict:
+    """The schema `data` names in `metadata.schema`.
+
+    Raises:
+        FileNotFoundError: If the schema file is not found.
+        ValueError: If `data` has no `metadata.schema`.
+    """
+    # Auto-detect schema_type from metadata
+    if "metadata" not in data or "schema" not in data["metadata"]:
+        raise ValueError(
+            "Schema type could not be automatically determined. "
+            "The input data must contain 'metadata.schema' field."
+        )
+    schema_filename = data["metadata"]["schema"]
+    # Remove .yml or .yaml extension to get schema_type
+    schema_type = schema_filename.replace(".yml", "").replace(".yaml", "")
+
+    schema_file = schemaPath / f"{schema_type}.yaml"
+    if not schema_file.exists():
+        schema_file = schemaPath / f"{schema_type}.yml"
+    if not schema_file.exists():
+        raise FileNotFoundError(f"Schema file {schema_file} not found.")
+
+    schema = load_yaml(schema_file)
+    return _enforce_no_additional_properties(schema) if restrictive else schema
+
+
+def check_document(data: dict, schema: dict) -> None:
+    """Raise unless `data` conforms to `schema`, and a system to its own material names."""
+    _jsonschema_validate_modified(data, schema, registry=registry)
+    if data["metadata"]["schema"] == "system_schema.yml":
+        errors = system_errors(data)
+        if errors:
+            raise ValueError("\n".join(errors))
+
+
 def validate(
-    input: dict | str | Path, restrictive: bool = False,
+    input: dict | str | Path, restrictive: bool = False, system: str | Path | None = None,
 ) -> None:
     """
     Validates a given AWESIO input by auto-detecting the schema type from metadata.
+
+    A structure is also checked against its system file: `system` where given, else
+    `metadata.system` relative to the structure's own file. A structure passed as a
+    dictionary without `system` has no file to resolve against, so only its schema is
+    checked.
 
     Args:
         input (dict | str | Path): Input data as a dictionary or a path to a YAML file 
             containing the data to be validated.
         restrictive (bool, optional): If True, the schema will be modified to enforce
             that no additional properties are allowed. Defaults to False.
+        system (str | Path, optional): The system file of a structure, in place of the
+            one it names.
 
     Raises:
         FileNotFoundError: If the schema file corresponding to the schema type is not found.
@@ -126,29 +261,16 @@ def validate(
     else:
         raise TypeError(f"Input type {type(input)} is not supported.")
     
-    # Auto-detect schema_type from metadata
-    if "metadata" not in data or "schema" not in data["metadata"]:
-        raise ValueError(
-            "Schema type could not be automatically determined. "
-            "The input data must contain 'metadata.schema' field."
-        )
-    schema_filename = data["metadata"]["schema"]
-    # Remove .yml or .yaml extension to get schema_type
-    schema_type = schema_filename.replace(".yml", "").replace(".yaml", "")
-    
-    schema_file = schemaPath / f"{schema_type}.yaml"
-    if not schema_file.exists():
-        schema_file = schemaPath / f"{schema_type}.yml"
-    if not schema_file.exists():
-        raise FileNotFoundError(f"Schema file {schema_file} not found.")
-
-    schema = load_yaml(schema_file)
-    if restrictive:
-        schema = _enforce_no_additional_properties(schema)
+    schema = load_schema(data, restrictive)
 
     try:
-        _jsonschema_validate_modified(data, schema, registry=registry)
-        
+        check_document(data, schema)
+        if data["metadata"]["schema"] == "structure_schema.yml":
+            if system is not None:
+                check_against_system(data, Path(system))
+            elif type(input) is not dict:
+                check_against_system(data, Path(input).parent / data["metadata"]["system"])
+
     except (ValueError, jsonschema.ValidationError) as e:
         warnings.warn(f"Validation failed: {e}", UserWarning, stacklevel=2)
         return data

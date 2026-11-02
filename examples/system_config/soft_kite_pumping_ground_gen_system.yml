@@ -4,6 +4,12 @@ metadata:
   note: None
   awesIO_version: 0.1.0
   schema: system_schema.yml
+materials:
+  - name: dyneema
+    law: linear
+    parameters:
+      density: 724.0 # kg/m^3
+      youngs_modulus: 0.85e+9 # Pa
 assembly:
   connectivity_matrix:
     - [K1, T1]
@@ -48,12 +54,9 @@ components:
       structure:
         length: 340
         diameter: 0.010
-        density: 724.0
         max_tether_force: 8200.0 # N
         conductive: false
-        material:
-          type: dyneema
-          youngs_modulus: 0.85e+9 # Pa
+        material: dyneema
   ground_station:
     name: example_pumping_ground_gen_station
     type: pumping_ground_gen_station

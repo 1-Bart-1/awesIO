@@ -3,16 +3,21 @@
 import hashlib
 import math
 import re
+import shutil
 import warnings
 from pathlib import Path
 
 import pytest
+import ryml
+import yaml
 
 from awesio.validator import validate
 from awesio.yaml import load_yaml
 
 EXAMPLE_DIR = Path(__file__).parent.parent / "examples/structure"
 EXAMPLES = sorted(EXAMPLE_DIR.glob("*.yml"))
+SYSTEM_EXAMPLES = sorted((EXAMPLE_DIR.parent / "system_config").glob("*.yml"))
+V3_SYSTEM = EXAMPLE_DIR.parent / "system_config/v3_system.yml"
 SCHEMA = Path(__file__).parent.parent / "src/awesio/schemas/structure_schema.yml"
 CONVENTIONS = Path(__file__).parent.parent / "docs/source/conventions.rst"
 
@@ -191,23 +196,19 @@ def test_every_reference_resolves_to_a_named_row(structure):
         return {row[0] for row in rows(structure, block)}
 
     points, segments, bodies = names("points"), names("segments"), names("bodies")
-    materials = names("materials")
     for name, _, body, *_ in rows(structure, "points"):
         assert body is None or body in bodies, name
-    for name, endpoints, _, _, material, *_ in rows(structure, "segments"):
-        assert set(endpoints) <= points and material in materials, name
+    for name, endpoints, *_ in rows(structure, "segments"):
+        assert set(endpoints) <= points, name
     for _, pair, *_ in rows(structure, "pulleys"):
         assert set(pair) <= segments
     for name, wing, members in rows(structure, "spanwise_stations"):
         assert wing in names("wings") and set(members) <= points, name
     for _, start, end, members in rows(structure, "tethers"):
         assert {start, end} <= points and set(members) <= segments
-    for name, pair, _, _, material, *_ in rows(structure, "tubes"):
-        assert set(pair) <= bodies and material in materials, name
-    canopies = {name: material for name, _, _, material, *_ in rows(structure, "wings")}
-    for name, material in canopies.items():
-        assert material is None or material in materials, name
-    with_a_canopy = {name for name, material in canopies.items() if material}
+    for name, pair, *_ in rows(structure, "tubes"):
+        assert set(pair) <= bodies, name
+    with_a_canopy = {name for name, _, _, material, *_ in rows(structure, "wings") if material}
     for name, wing, corners, *_ in rows(structure, "canopy_faces"):
         assert wing in with_a_canopy and set(corners) <= points, name
 
@@ -237,20 +238,6 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["segments"]["data"][0].__setitem__(2, -1.0)),
         ("a segment's material given as a number",
          lambda d: d["segments"]["data"][0].__setitem__(4, 970.0)),
-        ("a material with an empty law name",
-         lambda d: d["materials"]["data"][0].__setitem__(1, "")),
-        ("a linear material without its Young's modulus",
-         lambda d: d["materials"]["data"][0][2].pop("youngs_modulus")),
-        ("a negative Young's modulus",
-         lambda d: d["materials"]["data"][0][2].update(youngs_modulus=-5.5e10)),
-        ("a membrane material holding a line's parameters",
-         lambda d: d["materials"]["data"][2].__setitem__(2, d["materials"]["data"][0][2])),
-        ("a breukels2011 material without C19",
-         lambda d: d["materials"]["data"][3][2].pop("C19")),
-        ("a breukels2011 material with a constant it does not define",
-         lambda d: d["materials"]["data"][3][2].update(C20=1.0)),
-        ("a material whose parameters are a list",
-         lambda d: d["materials"]["data"][0].__setitem__(2, [970.0, 5.5e10])),
         ("a station holding a bare point name",
          lambda d: d["spanwise_stations"]["data"][0].__setitem__(2, "le_left")),
         ("a station without its wing",
@@ -283,6 +270,12 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["metadata"].update(connectivity_sha="abc")),
         ("uppercase connectivity_sha",
          lambda d: d["metadata"].update(connectivity_sha="A" * 64)),
+        ("missing system",
+         lambda d: d["metadata"].pop("system")),
+        ("missing system_sha",
+         lambda d: d["metadata"].pop("system_sha")),
+        ("truncated system_sha",
+         lambda d: d["metadata"].update(system_sha="abc")),
         ("awesIO_version without a patch component",
          lambda d: d["metadata"].update(awesIO_version="1.0")),
         ("another schema's name",
@@ -350,7 +343,7 @@ def test_malformed_structures_are_rejected(beam, label, mutate):
 
 def test_optional_blocks_may_be_absent(structure):
     """An absent optional block means the same as an empty one."""
-    for block in ("materials", "spanwise_stations", "pulleys", "tethers", "winches",
+    for block in ("spanwise_stations", "pulleys", "tethers", "winches",
                   "bodies", "tubes", "wings", "canopy_faces"):
         structure.pop(block, None)
     for row in structure["points"]["data"]:
@@ -360,24 +353,18 @@ def test_optional_blocks_may_be_absent(structure):
 
 def test_the_core_alone_is_a_valid_structure(structure):
     """Every column a block does not require may be left out, materials and all."""
-    structure.pop("materials", None)
     for name, block in load_yaml(SCHEMA)["properties"].items():
         for header in block.get("optionalColumns", {}):
             if name in structure and header in structure[name]["headers"]:
                 drop_column(structure[name], header)
-    drop_column(structure["pulleys"], "efficiency")
+    if "pulleys" in structure:
+        drop_column(structure["pulleys"], "efficiency")
     assert_valid(structure)
-
-
-def test_a_material_may_name_any_law_with_any_parameters(beam):
-    curve = {"strain": [0.0, 0.01], "force": [0.0, 80.0]}
-    beam["materials"]["data"][0][1:] = ["tabulated", curve]
-    assert_valid(beam)
 
 
 def test_a_wing_may_have_no_canopy(structure):
     structure["wings"]["data"][0][3] = None
-    structure.pop("canopy_faces")
+    structure.pop("canopy_faces", None)
     assert_valid(structure)
 
 
@@ -385,3 +372,106 @@ def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     """Blocks are addressed by header, so appended columns must not break v1.0."""
     append_column(structure["segments"], "damping_per_stiffness", 0.002, unit="s")
     assert_valid(structure)
+
+
+@pytest.mark.parametrize("path", EXAMPLES, ids=lambda path: path.stem)
+def test_every_structure_validates_with_its_system_file(path):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        validate(path)
+
+
+def tether_segments(structure):
+    """The beam's tether segments, as rows of its segments block."""
+    [(*_, members)] = rows(structure, "tethers")
+    return [row for row in rows(structure, "segments") if row[0] in members]
+
+
+def with_system(tmp_path, structure, edit_system=lambda system: None):
+    """Validate `structure` against an edited copy of the V3 system, its hash recomputed."""
+    system = load_yaml(V3_SYSTEM)
+    edit_system(system)
+    path = tmp_path / "system.yml"
+    path.write_text(yaml.safe_dump(system))
+    structure["metadata"]["system_sha"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", UserWarning)
+        validate(structure, system=path)
+    return " ".join(str(warning.message) for warning in caught)
+
+
+def test_an_unedited_system_passes_the_checks_below(tmp_path, beam):
+    """So each failure below is the failure its edit made, not the helper's."""
+    assert with_system(tmp_path, beam) == ""
+
+
+def test_a_segment_material_the_system_lacks_is_refused(tmp_path, beam):
+    beam["segments"]["data"][0][4] = "unobtainium"
+    assert "names material 'unobtainium'" in with_system(tmp_path, beam)
+
+
+def test_a_tube_material_the_system_lacks_is_refused(tmp_path, beam):
+    beam["tubes"]["data"][0][4] = "unobtainium"
+    assert "names material 'unobtainium'" in with_system(tmp_path, beam)
+
+
+def test_a_canopy_material_the_system_lacks_is_refused(tmp_path, beam):
+    beam["wings"]["data"][0][3] = "unobtainium"
+    assert "names material 'unobtainium'" in with_system(tmp_path, beam)
+
+
+def test_a_tether_the_system_lacks_is_refused(tmp_path, beam):
+    beam["tethers"]["data"][0][0] = "kite_string"
+    assert "tether 'kite_string' is not in the system" in with_system(tmp_path, beam)
+
+
+def test_a_tether_segment_of_another_diameter_is_refused(tmp_path, beam):
+    tether_segments(beam)[0][3] = 0.005
+    assert "has diameter 0.005" in with_system(tmp_path, beam)
+
+
+def test_tether_rest_lengths_must_add_up_to_its_length(tmp_path, beam):
+    tether_segments(beam)[0][2] += 1.0
+    assert "segments add up to 251" in with_system(tmp_path, beam)
+
+
+def test_a_system_edited_after_the_structure_was_written_is_refused(tmp_path, beam):
+    system = tmp_path / "system.yml"
+    system.write_text(V3_SYSTEM.read_text() + "# edited\n")
+    with pytest.warns(UserWarning, match="hashes to"):
+        validate(beam, system=system)
+
+
+def test_a_structure_naming_a_system_file_that_is_not_there_is_refused(tmp_path):
+    structure = shutil.copy(EXAMPLE_DIR / "v3_beam_structure.yml", tmp_path)
+    with pytest.warns(UserWarning, match="not found"):
+        validate(structure)
+
+
+def test_an_invalid_system_file_is_refused_with_its_structure(tmp_path, beam):
+    def without_components(system):
+        system.pop("components")
+
+    assert "'components' is a required property" in with_system(
+        tmp_path, beam, without_components)
+
+
+@pytest.mark.parametrize("path", [*EXAMPLES, *SYSTEM_EXAMPLES], ids=lambda path: path.stem)
+def test_a_strict_yaml_1_2_reader_loads_the_examples(path):
+    """rapidyaml refuses a bare `-`, which ruamel.yaml and PyYAML let through."""
+    ryml.parse_in_arena(path.read_text())
+
+
+@pytest.mark.parametrize("path", [*EXAMPLES, *SYSTEM_EXAMPLES], ids=lambda path: path.stem)
+def test_every_number_reads_as_a_number_in_pyyaml(path):
+    """PyYAML reads an exponent lacking a dot or a sign, such as `1e-12`, as a string."""
+    def strings(node):
+        if isinstance(node, dict):
+            return [text for value in node.values() for text in strings(value)]
+        if isinstance(node, list):
+            return [text for value in node for text in strings(value)]
+        return [node] if isinstance(node, str) else []
+
+    number = re.compile(r"[-+]?(\.\d+|\d+(\.\d*)?)[eE][-+]?\d+$")
+    assert not [text for text in strings(yaml.safe_load(path.read_text()))
+                if number.match(text)]

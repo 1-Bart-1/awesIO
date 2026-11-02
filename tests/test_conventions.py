@@ -18,9 +18,8 @@ OPERATIONAL_CONSTRAINTS = (
     "ground_gen/soft_kite_pumping_ground_gen_operational_constraints.yml"
 )
 EXAMPLE_FILES = [
-    "system_config/soft_kite_pumping_ground_gen_system.yml",
-    "structure/v3_beam_structure.yml",
-    "structure/v3_psm_structure.yml",
+    *sorted(str(path.relative_to(EXAMPLES)) for path in EXAMPLES.glob("system_config/*.yml")),
+    *sorted(str(path.relative_to(EXAMPLES)) for path in EXAMPLES.glob("structure/*.yml")),
     "wind_resource.yml",
     "ground_gen/soft_kite_pumping_ground_gen_power_curves.yml",
     OPERATIONAL_CONSTRAINTS,
