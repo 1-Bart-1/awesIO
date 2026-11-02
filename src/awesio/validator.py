@@ -82,13 +82,19 @@ def table_rows(document: dict, block: str) -> list[dict]:
     return [dict(zip(table["headers"], row)) for row in table["data"]]
 
 
+def defined_twice(kind: str, names: list[str]) -> list[str]:
+    """An error for each of `names` that appears more than once."""
+    return [f"{kind} {name!r} is defined twice"
+            for name in sorted({name for name in names if names.count(name) > 1})]
+
+
 def system_errors(system: dict) -> list[str]:
-    """What a system document gets wrong that its schema cannot say: a material defined
-    twice, or a tether, wing or bridle naming a material it does not define."""
+    """What a system document gets wrong that its schema cannot say: a material or tether
+    defined twice, or a tether, wing or bridle naming a material it does not define."""
     names = [material["name"] for material in system["materials"]]
-    errors = [f"material {name!r} is defined twice"
-              for name in sorted({name for name in names if names.count(name) > 1})]
     components = system["components"]
+    tether_names = [tether["name"] for tether in components["tethers"]]
+    errors = [*defined_twice("material", names), *defined_twice("tether", tether_names)]
     kites = components.get("kites", [])
     parts = [*components["tethers"], *(kite["wing"] for kite in kites),
              *(kite["bridle"] for kite in kites if "bridle" in kite)]
@@ -101,8 +107,9 @@ def system_errors(system: dict) -> list[str]:
 
 def structure_errors(structure: dict, system: dict) -> list[str]:
     """Where a structure disagrees with the system it discretises: a material or tether
-    name that does not resolve, a tether segment not of the tether's diameter, or rest
-    lengths not adding up to the tether's length. A column left out states nothing."""
+    name that does not resolve, a tether naming a segment the structure lacks, a tether
+    segment not of the tether's material or diameter, or rest lengths not adding up to
+    the tether's length. A column left out states nothing."""
     materials = {material["name"] for material in system["materials"]}
     errors = []
     for block, column in (("segments", "material"), ("tubes", "material"),
@@ -122,14 +129,24 @@ def structure_errors(structure: dict, system: dict) -> list[str]:
         if name not in tethers:
             errors.append(f"tether {name!r} is not in the system")
             continue
+        errors += [f"tether {name!r} names segment {member!r}, not in the structure"
+                   for member in row["segments"] if member not in segments]
         members = [segments[member] for member in row["segments"] if member in segments]
         errors += tether_errors(name, tethers[name], members)
     return errors
 
 
 def tether_errors(name: str, tether: dict, segments: list[dict]) -> list[str]:
-    """Where a tether's segments disagree with the system's diameter and length of it."""
+    """Where a tether's segments disagree with the system's material, diameter and length
+    of it."""
     errors = [
+        f"tether {name!r} segment {segment['name']!r} names material "
+        f"{segment['material']!r}, the system says {tether['material']!r}"
+        for segment in segments
+        if segment.get("material") is not None and "material" in tether
+        and segment["material"] != tether["material"]
+    ]
+    errors += [
         f"tether {name!r} segment {segment['name']!r} has diameter "
         f"{segment['diameter']}, the system says {tether['diameter']}"
         for segment in segments
@@ -137,7 +154,7 @@ def tether_errors(name: str, tether: dict, segments: list[dict]) -> list[str]:
         and not math.isclose(segment["diameter"], tether["diameter"], rel_tol=TOLERANCE)
     ]
     if all("rest_length" in segment for segment in segments):
-        total = sum(segment["rest_length"] for segment in segments)
+        total = math.fsum(segment["rest_length"] for segment in segments)
         if not math.isclose(total, tether["length"], rel_tol=TOLERANCE):
             errors.append(
                 f"tether {name!r} segments add up to {total} m, "
@@ -158,7 +175,7 @@ def check_against_system(structure: dict, system_path: Path) -> None:
             f"but {system_path} hashes to {digest}"
         )
     system = load_yaml(system_path)
-    check_document(system, load_schema(system))
+    check_document(system, load_yaml(schemaPath / "system_schema.yml"))
     errors = structure_errors(structure, system)
     if errors:
         raise ValueError("\n".join(errors))
@@ -197,14 +214,12 @@ def load_schema(data: dict, restrictive: bool = False) -> dict:
         FileNotFoundError: If the schema file is not found.
         ValueError: If `data` has no `metadata.schema`.
     """
-    # Auto-detect schema_type from metadata
     if "metadata" not in data or "schema" not in data["metadata"]:
         raise ValueError(
             "Schema type could not be automatically determined. "
             "The input data must contain 'metadata.schema' field."
         )
     schema_filename = data["metadata"]["schema"]
-    # Remove .yml or .yaml extension to get schema_type
     schema_type = schema_filename.replace(".yml", "").replace(".yaml", "")
 
     schema_file = schemaPath / f"{schema_type}.yaml"

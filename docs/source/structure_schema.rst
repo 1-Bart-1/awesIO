@@ -1,19 +1,9 @@
 AWE System Structure Schema
 ===========================
 
-The structure schema describes the **resolved structural definition** of an AWE
-system: the points, the segments, pulleys, tethers and winches built on them, the
-wings with their stations and canopy faces, the rigid bodies, and the tubes between
-those bodies. What a block requires is what drawing the system and pairing it with a
-saved state need. What a solver needs beyond that — rest lengths, masses, the names of
-materials — is in optional columns the schema defines once, so one file serves a viewer
-and a solver alike.
+The structure schema describes the **resolved structural definition** of an AWE system: the points, the segments, pulleys, tethers and winches built on them, the wings with their stations and canopy faces, the rigid bodies, and the tubes between those bodies. What a block requires is what drawing the system and pairing it with a saved state need. What a solver needs beyond that — rest lengths, masses, the names of materials — is in optional columns the schema defines once. A viewer reads the structure alone; a solver also reads the system file it names, for what those materials are.
 
-**The system file owns the design and the structure owns the discretisation.** A
-structure holds only what discretising adds: points, positions, how a length is split
-into segments, bodies, tubes, faces. Every material and every value that is one for a
-whole component belongs to the :doc:`system_schema` file the structure names in its
-``metadata``, as the :doc:`conventions` define under *Which file owns what*.
+**The system file owns the design and the structure owns the discretisation.** A structure holds only what discretising adds: points, positions, how a length is split into segments, bodies, tubes, faces. Every material and every value that is one for a whole component belongs to the :doc:`system_schema` file the structure names in its ``metadata``, as the :doc:`conventions` define under *Which file owns what*.
 
 It is the layer :doc:`system_schema` leaves free-form — its ``wing_sections``,
 ``bridle_nodes``, ``bridle_lines`` and ``bridle_connections`` blocks are bare
@@ -77,16 +67,12 @@ which is what makes a log self-describing: plotting it needs no sidecar file.
 What a file holds
 -----------------
 
-The schema's own description, under *Schema Structure* below, says what a column or block can be: the core, an awesIO column, a material or a tool's own. SAM appends its own wing columns to ``wings``, and its ``transforms`` and ``groups`` ride beside the core as blocks of its own, while ``metadata`` and a table's own keys stay closed.
+The schema's own description, under *Schema Structure* below, says what a column or block can be: the core, an awesIO column or a tool's own. SAM appends its own wing columns to ``wings``, and its ``transforms`` and ``groups`` ride beside the core as blocks of its own, while ``metadata`` and a table's own keys stay closed.
 
 Materials
 ---------
 
-A segment, a tube and a wing's canopy may name a material of the system in their
-optional ``material`` or ``canopy_material`` column, rather than carry a stiffness of
-their own. A solver reads the system file to build the elements; a viewer does not, so
-it shows the name and nothing more. The :doc:`system_schema` page defines materials and
-their stiffness laws.
+A segment, a tube and a wing's canopy may name a material of the system in their optional ``material`` or ``canopy_material`` column, rather than carry a stiffness of their own. A solver reads the system file to build the elements; a viewer does not, so it shows the name and nothing more. The :doc:`system_schema` page defines materials and their stiffness laws.
 
 Wings, their stations and their canopy
 ---------------------------------------
@@ -196,22 +182,15 @@ winch, and differ in what carries the wing and in the tether their V3Kite projec
    0.13 m of it; V3Kite carries them and the ``wing_ctrl_*`` points on a massless
    frame of SymbolicAWEModels.jl's own, which the document leaves out.
 
-The system's ``v3_canopy`` stands in for V3Kite's canopy springs: their 1000 N/m is its
-``membrane_stiffness``, and its ``areal_density`` is zero because the wing's
-``extra_mass`` already holds the 170 g/m² fabric of awegroup/TUDELFT_V3_KITE, as
-V3Kite carries it. ``v3_tube`` holds the Breukels constants SymbolicAWEModels.jl
-evaluates.
+The system's ``v3_canopy`` stands in for V3Kite's canopy springs: their 1000 N/m is its ``membrane_stiffness``, and its ``areal_density`` is zero because the wing's ``extra_mass`` already holds the 170 g/m² fabric of awegroup/TUDELFT_V3_KITE, as V3Kite carries it. ``v3_tube`` holds the Breukels constants SymbolicAWEModels.jl evaluates.
 
-Nothing in the schema is specific to a leading-edge inflatable kite: bodies, tubes and
-canopy faces are all optional. Two small files show it, each with a system file of its
-own:
+Nothing in the schema is specific to a leading-edge inflatable kite: bodies, tubes and canopy faces are all optional. Two small files show it, each with a system file of its own:
 
 `fixed_wing_multiple_tether_structure.yml <https://github.com/awegroup/awesIO/blob/main/examples/structure/fixed_wing_multiple_tether_structure.yml>`_
    A fixed wing on two tethers: one rigid body, each tether two segments, no canopy.
 
 `ram_air_structure.yml <https://github.com/awegroup/awesIO/blob/main/examples/structure/ram_air_structure.yml>`_
-   A double-skin ram-air kite of two cells: a top skin, a bottom skin and three ribs,
-   all canopy faces over shared points, with no body and no tube.
+   A double-skin ram-air kite of two cells: a top skin, a bottom skin and three ribs, all canopy faces over shared points, with no body and no tube.
 
 Columns
 -------

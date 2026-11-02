@@ -387,6 +387,15 @@ def tether_segments(structure):
     return [row for row in rows(structure, "segments") if row[0] in members]
 
 
+def string_scalars(node):
+    """Every string value under `node`, at any depth."""
+    if isinstance(node, dict):
+        return [text for value in node.values() for text in string_scalars(value)]
+    if isinstance(node, list):
+        return [text for value in node for text in string_scalars(value)]
+    return [node] if isinstance(node, str) else []
+
+
 def with_system(tmp_path, structure, edit_system=lambda system: None):
     """Validate `structure` against an edited copy of the V3 system, its hash recomputed."""
     system = load_yaml(V3_SYSTEM)
@@ -430,6 +439,23 @@ def test_a_tether_segment_of_another_diameter_is_refused(tmp_path, beam):
     assert "has diameter 0.005" in with_system(tmp_path, beam)
 
 
+def test_a_tether_segment_of_another_material_is_refused(tmp_path, beam):
+    tether_segments(beam)[0][4] = "control_line"
+    assert "names material 'control_line', the system says" in with_system(tmp_path, beam)
+
+
+def test_a_tether_naming_a_segment_the_structure_lacks_is_refused(tmp_path, beam):
+    beam["tethers"]["data"][0][-1].append("no_such_segment")
+    assert "names segment 'no_such_segment'" in with_system(tmp_path, beam)
+
+
+def test_a_tether_defined_twice_in_the_system_is_refused(tmp_path, beam):
+    def with_a_second_copy(system):
+        system["components"]["tethers"].append(dict(system["components"]["tethers"][0]))
+
+    assert "is defined twice" in with_system(tmp_path, beam, with_a_second_copy)
+
+
 def test_tether_rest_lengths_must_add_up_to_its_length(tmp_path, beam):
     tether_segments(beam)[0][2] += 1.0
     assert "segments add up to 251" in with_system(tmp_path, beam)
@@ -456,6 +482,13 @@ def test_an_invalid_system_file_is_refused_with_its_structure(tmp_path, beam):
         tmp_path, beam, without_components)
 
 
+def test_a_document_that_is_not_a_system_is_refused_as_its_system(tmp_path, beam):
+    other = Path(shutil.copy(EXAMPLE_DIR / "v3_psm_structure.yml", tmp_path))
+    beam["metadata"]["system_sha"] = hashlib.sha256(other.read_bytes()).hexdigest()
+    with pytest.warns(UserWarning, match="required property"):
+        validate(beam, system=other)
+
+
 @pytest.mark.parametrize("path", [*EXAMPLES, *SYSTEM_EXAMPLES], ids=lambda path: path.stem)
 def test_a_strict_yaml_1_2_reader_loads_the_examples(path):
     """rapidyaml refuses a bare `-`, which ruamel.yaml and PyYAML let through."""
@@ -465,13 +498,6 @@ def test_a_strict_yaml_1_2_reader_loads_the_examples(path):
 @pytest.mark.parametrize("path", [*EXAMPLES, *SYSTEM_EXAMPLES], ids=lambda path: path.stem)
 def test_every_number_reads_as_a_number_in_pyyaml(path):
     """PyYAML reads an exponent lacking a dot or a sign, such as `1e-12`, as a string."""
-    def strings(node):
-        if isinstance(node, dict):
-            return [text for value in node.values() for text in strings(value)]
-        if isinstance(node, list):
-            return [text for value in node for text in strings(value)]
-        return [node] if isinstance(node, str) else []
-
     number = re.compile(r"[-+]?(\.\d+|\d+(\.\d*)?)[eE][-+]?\d+$")
-    assert not [text for text in strings(yaml.safe_load(path.read_text()))
+    assert not [text for text in string_scalars(yaml.safe_load(path.read_text()))
                 if number.match(text)]

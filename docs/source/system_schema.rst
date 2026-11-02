@@ -34,15 +34,7 @@ Materials and their laws
        law: membrane
        parameters: {areal_density: 0.17, membrane_stiffness: 1000.0}
 
-The schema defines the laws more than one tool implements: ``linear`` for a line,
-``membrane`` for canopy fabric and ``breukels2011`` for an inflated tube. Each fixes
-the names and units of its parameters and states the curve they describe, so
-a reader that has never met the law evaluates it from the schema alone.
-``breukels2011`` carries its nineteen correlation constants rather than standing for
-them. Any other law is free: its name is a model its readers implement, which fixes
-its parameters, and the file still carries every number that model needs. A reader
-that does not implement a material's law fails on the elements naming it rather than
-substituting another.
+The schema defines the laws more than one tool implements: ``linear`` for a line, ``membrane`` for canopy fabric and ``breukels2011`` for an inflated tube. Each fixes the names and units of its parameters and states the curve they describe, so a reader that has never met the law evaluates it from the schema alone. ``breukels2011`` carries its nineteen correlation constants rather than standing for them. Any other law is free: its name is a model its readers implement, which fixes its parameters, and the file still carries every number that model needs. A reader that does not implement a material's law fails on the elements naming it rather than substituting another.
 
 Component Types
 ---------------
