@@ -39,6 +39,20 @@ def rows(structure, block):
     return structure.get(block, {"data": []})["data"]
 
 
+def records(structure, block):
+    """The rows of a block as dictionaries by header."""
+    table = structure.get(block, {"headers": [], "data": []})
+    return [dict(zip(table["headers"], row)) for row in table["data"]]
+
+
+def give_the_wing_a_canopy_material(structure, material):
+    """Add the optional column to the first wing, holding `material`."""
+    wings = structure["wings"]
+    wings["headers"].append("canopy_material")
+    wings["units"].append("-")
+    wings["data"][0].append(material)
+
+
 def a_point_on_a_body(structure):
     """Most rows leave `body` null; breaking that column needs one that does not."""
     return next(row for row in rows(structure, "points") if row[2] is not None)
@@ -141,10 +155,11 @@ def test_body_and_wing_frames_are_unit_quaternions(structure):
 
 def test_body_inertia_is_symmetric(structure):
     """Draft-07 can hold `extra_inertia_KA` to three rows but not to symmetry."""
-    for name, *_, inertia in rows(structure, "bodies"):
+    for body in records(structure, "bodies"):
+        inertia = body["extra_inertia_KA"]
         for i in range(3):
             for j in range(i):
-                assert inertia[i][j] == inertia[j][i], name
+                assert inertia[i][j] == inertia[j][i], body["name"]
 
 
 def direction(start, end):
@@ -186,8 +201,8 @@ def test_stations_run_from_the_left_tip_to_the_right(beam):
     def spanwise(members):
         return sum(sum(a * b for a, b in zip(span_axis, pos[point])) for point in members)
 
-    along_span = [spanwise(members) / len(members)
-                  for *_, members in beam["spanwise_stations"]["data"]]
+    along_span = [spanwise(station["points"]) / len(station["points"])
+                  for station in records(beam, "spanwise_stations")]
     assert along_span == sorted(along_span, reverse=True)
 
 
@@ -202,15 +217,18 @@ def test_every_reference_resolves_to_a_named_row(structure):
         assert set(endpoints) <= points, name
     for _, pair, *_ in rows(structure, "pulleys"):
         assert set(pair) <= segments
-    for name, wing, members in rows(structure, "spanwise_stations"):
-        assert wing in names("wings") and set(members) <= points, name
-    for _, start, end, members in rows(structure, "tethers"):
-        assert {start, end} <= points and set(members) <= segments
+    for station in records(structure, "spanwise_stations"):
+        assert station["wing"] in names("wings"), station["name"]
+        assert set(station["points"]) <= points, station["name"]
+    for tether in records(structure, "tethers"):
+        assert {tether["start_point"], tether["end_point"]} <= points
+        assert set(tether["segments"]) <= segments
     for name, pair, *_ in rows(structure, "tubes"):
         assert set(pair) <= bodies, name
-    with_a_canopy = {name for name, _, _, material, *_ in rows(structure, "wings") if material}
+    without_a_canopy = {wing["name"] for wing in records(structure, "wings")
+                        if "canopy_material" in wing and wing["canopy_material"] is None}
     for name, wing, corners, *_ in rows(structure, "canopy_faces"):
-        assert wing in with_a_canopy and set(corners) <= points, name
+        assert wing in names("wings") - without_a_canopy and set(corners) <= points, name
 
 
 @pytest.mark.parametrize(
@@ -325,7 +343,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("a canopy face with five corners",
          lambda d: d["canopy_faces"]["data"][0][2].append("wing_le_8")),
         ("a canopy material given as a number",
-         lambda d: d["wings"]["data"][0].__setitem__(3, 42)),
+         lambda d: give_the_wing_a_canopy_material(d, 42)),
         ("a canopy face without its wing",
          lambda d: d["canopy_faces"]["data"][0].__setitem__(1, None)),
         ("a wing without its origin", lambda d: drop_column(d["wings"], "pos_ENU")),
@@ -363,7 +381,9 @@ def test_the_core_alone_is_a_valid_structure(structure):
 
 
 def test_a_wing_may_have_no_canopy(structure):
-    structure["wings"]["data"][0][3] = None
+    wings = structure["wings"]
+    if "canopy_material" in wings["headers"]:
+        wings["data"][0][wings["headers"].index("canopy_material")] = None
     structure.pop("canopy_faces", None)
     assert_valid(structure)
 
@@ -383,8 +403,8 @@ def test_every_structure_validates_with_its_system_file(path):
 
 def tether_segments(structure):
     """The beam's tether segments, as rows of its segments block."""
-    [(*_, members)] = rows(structure, "tethers")
-    return [row for row in rows(structure, "segments") if row[0] in members]
+    [tether] = records(structure, "tethers")
+    return [row for row in rows(structure, "segments") if row[0] in tether["segments"]]
 
 
 def string_scalars(node):
@@ -425,7 +445,7 @@ def test_a_tube_material_the_system_lacks_is_refused(tmp_path, beam):
 
 
 def test_a_canopy_material_the_system_lacks_is_refused(tmp_path, beam):
-    beam["wings"]["data"][0][3] = "unobtainium"
+    give_the_wing_a_canopy_material(beam, "unobtainium")
     assert "names material 'unobtainium'" in with_system(tmp_path, beam)
 
 
@@ -440,12 +460,12 @@ def test_a_tether_segment_of_another_diameter_is_refused(tmp_path, beam):
 
 
 def test_a_tether_segment_of_another_material_is_refused(tmp_path, beam):
-    tether_segments(beam)[0][4] = "control_line"
-    assert "names material 'control_line', the system says" in with_system(tmp_path, beam)
+    tether_segments(beam)[0][4] = "dyneema"
+    assert "names material 'dyneema', the system says" in with_system(tmp_path, beam)
 
 
 def test_a_tether_naming_a_segment_the_structure_lacks_is_refused(tmp_path, beam):
-    beam["tethers"]["data"][0][-1].append("no_such_segment")
+    beam["tethers"]["data"][0][3].append("no_such_segment")
     assert "names segment 'no_such_segment'" in with_system(tmp_path, beam)
 
 

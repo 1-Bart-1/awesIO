@@ -162,27 +162,15 @@ document.
 Examples
 --------
 
-``examples/structure`` holds two models of the same kite — the TU Delft V3, a bridled
-soft wing, placed straight above its ground anchor. Both name
-``examples/system_config/v3_system.yml``. They share the bridle's layout and the single
-winch, and differ in what carries the wing and in the tether their V3Kite projects give it:
+``examples/structure`` holds two models of the same kite — the TU Delft V3, a bridled soft wing, placed straight above its ground anchor. KiteGeometry.jl wrote them, and ``examples/system_config/v3_system.yml`` which both name, from V3Kite.jl's two projects, so they carry SymbolicAWEModels.jl's own columns beside the schema's. They differ in what carries the wing and in the tether their projects give it:
 
 ``v3_psm_structure.yml``
-   The particle lattice: 44 points, 68 segments and 6 pulleys carry the wing's shape,
-   and its mass sits on those points. Nine canopy faces span the leading and trailing
-   edges between the struts. No bodies and no tubes — the lattice *is* the structure.
+   The particle lattice: 44 points, 95 segments and 6 pulleys carry the wing's shape, and its mass sits on those points. Nine canopy faces span the leading and trailing edges between the struts. Its one body, massless, is the frame SymbolicAWEModels.jl gives every wing; no point rides on it.
 
 ``v3_beam_structure.yml``
-   The beam wing: 22 rigid bodies, twelve down the leading-edge tube and ten down the
-   trailing edge, joined by eleven ``le_beam_*`` tubes along the leading edge and ten
-   ``strut_beam_*`` from front to back. The canopy is 90 faces over the tube points
-   and 110 ``wing_ctrl_*`` points, the 20 at the tubes riding on their bodies. Under
-   them the bridle and one tether, in a document of 220 points over 95 segments. The
-   bridle's 40 attachment points each ride on a body of the nearest tube, within
-   0.13 m of it; V3Kite carries them and the ``wing_ctrl_*`` points on a massless
-   frame of SymbolicAWEModels.jl's own, which the document leaves out.
+   The beam wing: 22 rigid bodies, twelve down the leading-edge tube and ten down the trailing edge, joined by eleven ``le_beam_*`` tubes along the leading edge and ten ``strut_beam_*`` from front to back. The canopy is 90 faces over the tube points and 110 ``wing_ctrl_*`` points, with 271 springs between them. Under them the bridle and one tether, in a document of 220 points over 366 segments. A 23rd body, massless, is the wing's frame, and the bridle's 40 attachment points and the ``wing_ctrl_*`` points ride on it.
 
-The system's ``v3_canopy`` stands in for V3Kite's canopy springs: their 1000 N/m is its ``membrane_stiffness``, and its ``areal_density`` is zero because the wing's ``extra_mass`` already holds the 170 g/m² fabric of awegroup/TUDELFT_V3_KITE, as V3Kite carries it. ``v3_tube`` holds the Breukels constants SymbolicAWEModels.jl evaluates.
+Both canopies leave ``canopy_material`` out, because segments carry their stiffness: each of the beam's canopy springs has a linear material of its own, of about 1000 N/m at its length, and the lattice has its ``wing_wire`` lines. The faces only mesh the wing, and the fabric's mass is already in ``extra_mass``. ``breukels2011`` holds the Breukels constants SymbolicAWEModels.jl evaluates.
 
 Nothing in the schema is specific to a leading-edge inflatable kite: bodies, tubes and canopy faces are all optional. Two small files show it, each with a system file of its own:
 

@@ -98,15 +98,15 @@ def test_the_worked_example_lands_where_the_page_says():
     assert all(math.isclose(a, b, abs_tol=1e-12) for a, b in zip(pos_KA, stated["p_KA"]))
 
 
-@pytest.mark.parametrize(
-    "path, anchor",
-    [("v3_beam_structure.yml", "ground_anchor"), ("v3_psm_structure.yml", "39")],
-)
-def test_the_v3_tether_hangs_straight_down_in_the_wing_frame(path, anchor):
-    """The V3 kite is placed at 90° elevation, which puts its ground anchor on its
-    wing's negative z axis."""
+@pytest.mark.parametrize("path", ["v3_beam_structure.yml", "v3_psm_structure.yml"])
+def test_the_v3_tether_hangs_straight_down_in_the_wing_frame(path):
+    """The V3 kite is placed at 90° elevation, which puts its ground anchor straight
+    below the tether's top along its wing's z axis."""
     structure = load_yaml(EXAMPLES / "structure" / path)
-    [(_, origin, Q_KA2ENU, _)] = structure["wings"]["data"]
+    [(_, origin, Q_KA2ENU, *_)] = structure["wings"]["data"]
     pos_ENU = {row[0]: row[3] for row in structure["points"]["data"]}
+    [(_, top, anchor, *_)] = structure["tethers"]["data"]
+    x_top, y_top, z_top = to_wing_frame(pos_ENU[top], origin, Q_KA2ENU)
     x, y, z = to_wing_frame(pos_ENU[anchor], origin, Q_KA2ENU)
-    assert math.isclose(x, 0, abs_tol=1e-9) and math.isclose(y, 0, abs_tol=1e-9) and z < 0
+    assert math.isclose(x, x_top, abs_tol=1e-9) and math.isclose(y, y_top, abs_tol=1e-9)
+    assert z < z_top
