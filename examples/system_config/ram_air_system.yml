@@ -1,0 +1,48 @@
+metadata:
+  name: Ram-air kite
+  description: A small double-skin ram-air kite on one tether, to show the structure schema is not specific to a leading-edge inflatable kite.
+  note: Illustrative values, written by hand.
+  awesIO_version: 0.1.0
+  schema: system_schema.yml
+materials:
+  - name: dyneema
+    law: linear
+    parameters:
+      density: 970.0 # kg/m^3
+      youngs_modulus: 5.5e+10 # Pa
+  - name: ripstop
+    law: membrane
+    parameters:
+      areal_density: 0.04 # kg/m^2
+      membrane_stiffness: 20000.0 # N/m
+components:
+  kites:
+    - name: Ram-air kite
+      type: soft_kite_kcu
+      version: 1.0
+      joints:
+        control_unit_joint:
+          id: K1
+      wing:
+        name: Ram-air wing
+        type: ram_air_soft_kite
+        version: 1.0
+        structure:
+          projected_surface_area: 8.0 # m2
+          span: 4.0 # m
+          aspect_ratio: 2.0 # -
+          mass: 1.0 # kg
+          material: ripstop
+  tethers:
+    - name: tether
+      type: non_conductive_tether
+      version: 1.0
+      joints:
+        upper_tether_joint:
+          id: T1
+        lower_tether_joint:
+          id: T2
+      structure:
+        length: 100.0 # m
+        diameter: 0.003 # m
+        material: dyneema

@@ -1,0 +1,49 @@
+metadata:
+  name: fixed_wing_multiple_tether
+  description: "A fixed wing on two tethers: one rigid body carrying the wing's mass, each tether two segments, no canopy."
+  note: "Written by a one-off script that is not kept, as the smallest structure showing a fixed wing, and small enough to edit by hand. The 10 m between the wing joints and the wing's inertia, a uniform plate of that span and the system's area, are chosen here: the system file gives neither."
+  awesIO_version: 0.1.0
+  schema: structure_schema.yml
+  n_points: 6
+  connectivity_sha: 6316ed4952633525a186bf42836ca9fd5665423b892ab24d079f02674c7c24fd
+  system: ../system_config/fixed_wing_multiple_tether_GG_system.yml
+  system_sha: d5a6f67377f0372ec4fe1acefae709a00abefa7ce9133d8d624c25761df89ad5
+
+points:
+  headers: [name, fixed, body, pos_ENU]
+  units: ["-", "-", "-", m]
+  data:
+    - [left_wing_joint, false, wing, [0.0, 5.0, 340.0]]
+    - [right_wing_joint, false, wing, [0.0, -5.0, 340.0]]
+    - [left_tether_middle, false, null, [0.0, 5.0, 170.0]]
+    - [right_tether_middle, false, null, [0.0, -5.0, 170.0]]
+    - [left_drum, true, null, [0.0, 5.0, 0.0]]
+    - [right_drum, true, null, [0.0, -5.0, 0.0]]
+
+segments:
+  headers: [name, points, rest_length, diameter, material]
+  units: ["-", "-", m, m, "-"]
+  data:
+    - [left_tether_1, [left_wing_joint, left_tether_middle], 170.0, 0.01, dyneema]
+    - [left_tether_2, [left_tether_middle, left_drum], 170.0, 0.01, dyneema]
+    - [right_tether_1, [right_wing_joint, right_tether_middle], 170.0, 0.01, dyneema]
+    - [right_tether_2, [right_tether_middle, right_drum], 170.0, 0.01, dyneema]
+
+tethers:
+  headers: [name, start_point, end_point, segments]
+  units: ["-", "-", "-", "-"]
+  data:
+    - [left tether, left_wing_joint, left_drum, [left_tether_1, left_tether_2]]
+    - [right tether, right_wing_joint, right_drum, [right_tether_1, right_tether_2]]
+
+wings:
+  headers: [name, pos_ENU, Q_KA2ENU, canopy_material]
+  units: ["-", m, "-", "-"]
+  data:
+    - [wing, [0.0, 0.0, 340.0], [1.0, 0.0, 0.0, 0.0], null]
+
+bodies:
+  headers: [name, pos_ENU, Q_KA2ENU, extra_mass, extra_inertia_KA]
+  units: ["-", m, "-", kg, kg*m^2]
+  data:
+    - [wing, [0.0, 0.0, 340.0], [1.0, 0.0, 0.0, 0.0], 22.8, [[190.0, 0.0, 0.0], [0.0, 7.411, 0.0], [0.0, 0.0, 197.411]]]

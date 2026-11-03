@@ -1,0 +1,76 @@
+metadata:
+  name: ram_air_kite
+  description: "A double-skin ram-air kite of two cells: its canopy is a top skin, a bottom skin and three ribs, all faces over shared points, with no body and no tube."
+  note: "Written by a one-off script that is not kept, as the smallest structure showing a double skin, and small enough to edit by hand."
+  awesIO_version: 0.1.0
+  schema: structure_schema.yml
+  n_points: 15
+  connectivity_sha: daea1bb1cf5754c1a6e0e74991749752701a63d51ed20cd7cb089c4b266b7667
+  system: ../system_config/ram_air_system.yml
+  system_sha: 8bc73afce7626068e63c28ca96e75b2c88ca95f3f69861db576abb3fb60d3fea
+
+points:
+  headers: [name, fixed, body, pos_ENU]
+  units: ["-", "-", "-", m]
+  data:
+    - [left_nose, false, null, [-1.0, 2.0, 103.0]]
+    - [left_top, false, null, [0.0, 2.0, 103.2]]
+    - [left_tail, false, null, [1.0, 2.0, 103.0]]
+    - [left_bottom, false, null, [0.0, 2.0, 102.8]]
+    - [middle_nose, false, null, [-1.0, 0.0, 103.0]]
+    - [middle_top, false, null, [0.0, 0.0, 103.2]]
+    - [middle_tail, false, null, [1.0, 0.0, 103.0]]
+    - [middle_bottom, false, null, [0.0, 0.0, 102.8]]
+    - [right_nose, false, null, [-1.0, -2.0, 103.0]]
+    - [right_top, false, null, [0.0, -2.0, 103.2]]
+    - [right_tail, false, null, [1.0, -2.0, 103.0]]
+    - [right_bottom, false, null, [0.0, -2.0, 102.8]]
+    - [control_unit, false, null, [0.0, 0.0, 100.0]]
+    - [tether_middle, false, null, [0.0, 0.0, 50.0]]
+    - [ground, true, null, [0.0, 0.0, 0.0]]
+
+segments:
+  headers: [name, points, rest_length, diameter, material]
+  units: ["-", "-", m, m, "-"]
+  data:
+    - [left_bridle, [left_bottom, control_unit], 3.44093, 0.002, dyneema]
+    - [middle_bridle, [middle_bottom, control_unit], 2.8, 0.002, dyneema]
+    - [right_bridle, [right_bottom, control_unit], 3.44093, 0.002, dyneema]
+    - [tether_1, [control_unit, tether_middle], 50.0, 0.003, dyneema]
+    - [tether_2, [tether_middle, ground], 50.0, 0.003, dyneema]
+
+spanwise_stations:
+  headers: [name, wing, points]
+  units: ["-", "-", "-"]
+  data:
+    - [left, wing, [left_nose, left_tail]]
+    - [middle, wing, [middle_nose, middle_tail]]
+    - [right, wing, [right_nose, right_tail]]
+
+tethers:
+  headers: [name, start_point, end_point, segments]
+  units: ["-", "-", "-", "-"]
+  data:
+    - [tether, control_unit, ground, [tether_1, tether_2]]
+
+wings:
+  headers: [name, pos_ENU, Q_KA2ENU, canopy_material]
+  units: ["-", m, "-", "-"]
+  data:
+    - [wing, [0.0, 0.0, 100.0], [1.0, 0.0, 0.0, 0.0], ripstop]
+
+canopy_faces:
+  headers: [name, wing, points]
+  units: ["-", "-", "-"]
+  data:
+    - [left_middle_top_front, wing, [left_nose, left_top, middle_top, middle_nose]]
+    - [left_middle_top_rear, wing, [left_top, left_tail, middle_tail, middle_top]]
+    - [left_middle_bottom_front, wing, [left_nose, left_bottom, middle_bottom, middle_nose]]
+    - [left_middle_bottom_rear, wing, [left_bottom, left_tail, middle_tail, middle_bottom]]
+    - [middle_right_top_front, wing, [middle_nose, middle_top, right_top, right_nose]]
+    - [middle_right_top_rear, wing, [middle_top, middle_tail, right_tail, right_top]]
+    - [middle_right_bottom_front, wing, [middle_nose, middle_bottom, right_bottom, right_nose]]
+    - [middle_right_bottom_rear, wing, [middle_bottom, middle_tail, right_tail, right_bottom]]
+    - [left_rib, wing, [left_nose, left_top, left_tail, left_bottom]]
+    - [middle_rib, wing, [middle_nose, middle_top, middle_tail, middle_bottom]]
+    - [right_rib, wing, [right_nose, right_top, right_tail, right_bottom]]
