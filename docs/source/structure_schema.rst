@@ -134,6 +134,7 @@ Bodies, and the tubes between them
 A rigid body has a position and a frame: ``pos_ENU`` is its origin, the centre of
 its own mass, and ``Q_KA2ENU`` the rotation from its own KA frame into the world.
 ``extra_mass`` and ``extra_inertia_KA`` are taken about that origin.
+A body whose ``fixed`` is true is held in the world and nothing moves it; false or left out, it moves.
 
 Every mass in a document is extra mass, never a total: a reader adds what it
 derives. A point's ``extra_mass`` leaves out its segments and canopy faces. A reader
@@ -154,6 +155,8 @@ Their positions fix its ends and so its rest length, and one ``diameter`` holds 
 the whole element. How it curves between those ends belongs to the element: a
 Timoshenko beam carries curvature of its own, and only a shape its material's law
 cannot hold — or a taper — needs a chain of tubes.
+
+**A point rides a body or a tube, never both.** Its ``body`` names the rigid body it is fixed in, moving with it and passing its force and moment on to it. Its optional ``tube`` names a row of ``tubes``: the point moves with the tube's two bodies and passes its force on to them. A point held in the world rides neither. Draft-07 cannot state this across columns and blocks, so the structure's ``pointTubes`` keyword does, which ``awesio.validator`` enforces and other validators skip.
 
 Pairing with a state log
 ------------------------
