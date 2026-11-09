@@ -77,13 +77,11 @@ A segment, a tube and a wing's canopy may name a material of the system in their
 Wings, their stations and their canopy
 ---------------------------------------
 
-A document may hold several wings, so each station and each canopy face names the
-``wings`` row it belongs to.
+A document may hold several wings, so each canopy face names the ``wings`` row it belongs to, and so does each station a wing owns.
 
-A **station**, a row of ``spanwise_stations``, is a chordwise section of a wing, given by its points. They give the
-local chord, from which a reader derives the section's angle of attack and, where
-they trace the profile, its airfoil shape. How the aerodynamic load reaches the
-points is the reader's coupling.
+A **station**, a row of ``spanwise_stations``, is a chordwise section given by its points. Its ``wing`` names the ``wings`` row it is a section of, or is null where no wing owns it: such a station adds no lifting surface and no wing's span order counts it. A ``wing`` that is not null must name a row of ``wings``.
+
+A station's points give the local chord, from which a reader derives the section's angle of attack and, where they trace the profile, its airfoil shape. ``points`` may be empty, whether or not a wing owns the station, and the station then gives no chord: a kinematic flap on a beam has none, and a tool attaches it to a body through columns of its own. How the aerodynamic load reaches the points is the reader's coupling.
 
 A station's **local twist** is the angle its chord has turned through about the wing's
 KA y axis from where the document places it, positive pitching the leading edge up.
