@@ -145,6 +145,7 @@ the cross product of its diagonals, or of two edges for a triangle, which holds 
 a quadrilateral whose corners are not in one plane. A body's ``extra_mass`` and
 ``extra_inertia_KA`` leave out the points fixed to it, which a reader adds to the
 body.
+A point riding a tube adds to neither of the tube's bodies: its weight is part of the force it passes on to them.
 
 ``extra_inertia_KA`` is the full tensor in the body's KA axes. Where those are its
 principal axes the tensor is diagonal; a wing body's KA axes are fixed by the wing's
