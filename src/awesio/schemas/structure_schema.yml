@@ -219,13 +219,14 @@ properties:
 
   spanwise_stations:
     description: >
-      Chordwise sections of a wing. A station's points give the local chord,
+      Chordwise sections of a wing, or of none where a station's wing is null.
+      A station's points give the local chord,
       from which a reader derives the section's angle of attack and, where the
       points trace the profile, its airfoil shape. A station's local twist
       is the angle its chord has turned through about the wing's KA y axis from
       where the document places it, positive pitching the leading edge up. A
       station is not tied to the aerodynamic mesh. A wing's stations run from +y
-      to -y of its KA frame. A station with a null wing is a section of no wing.
+      to -y of its KA frame.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -239,7 +240,7 @@ properties:
                   The wing the station is a section of, or null where no wing owns it.
               - const: points
                 description: >
-                  The points the section is made of, none where it has no points.
+                  The points the section is made of. The list may be empty.
             minItems: 3
           units:
             items:

@@ -79,18 +79,15 @@ Wings, their stations and their canopy
 
 A document may hold several wings, so each canopy face names the ``wings`` row it belongs to, and so does each station a wing owns.
 
-A **station**, a row of ``spanwise_stations``, is a chordwise section of a wing, given by its points. They give the
-local chord, from which a reader derives the section's angle of attack and, where
-they trace the profile, its airfoil shape. How the aerodynamic load reaches the
-points is the reader's coupling.
+A **station**, a row of ``spanwise_stations``, is a chordwise section given by its points. Its ``wing`` names the ``wings`` row it is a section of, or is null where no wing owns it: such a station adds no lifting surface and no wing's span order counts it. A ``wing`` that is not null must name a row of ``wings``.
+
+A station's points give the local chord, from which a reader derives the section's angle of attack and, where they trace the profile, its airfoil shape. ``points`` may be empty, whether or not a wing owns the station, and the station then gives no chord: a kinematic flap on a beam has none, and a tool attaches it to a body through columns of its own. How the aerodynamic load reaches the points is the reader's coupling.
 
 A station's **local twist** is the angle its chord has turned through about the wing's
 KA y axis from where the document places it, positive pitching the leading edge up.
 
 A station is not tied to the aerodynamic mesh: it may cover several of its panels.
 A wing's station rows run from +y to -y of its KA frame, left tip to right tip.
-
-A station's ``wing`` may be null: the station is then a section of no wing, so it adds no lifting surface and no wing's span order counts it. Its ``points`` may be empty, as for a kinematic flap on a beam, whose attachment to a body is a tool's own columns. A ``wing`` that is not null must name a row of ``wings``.
 
 **A canopy is fabric meshed over existing points**, the way a ``.obj`` meshes faces
 over its vertices: its corners are rows of ``points``, never a second kind of point,
