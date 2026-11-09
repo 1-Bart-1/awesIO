@@ -77,8 +77,7 @@ A segment, a tube and a wing's canopy may name a material of the system in their
 Wings, their stations and their canopy
 ---------------------------------------
 
-A document may hold several wings, so each station and each canopy face names the
-``wings`` row it belongs to.
+A document may hold several wings, so each canopy face names the ``wings`` row it belongs to, and so does each station a wing owns.
 
 A **station**, a row of ``spanwise_stations``, is a chordwise section of a wing, given by its points. They give the
 local chord, from which a reader derives the section's angle of attack and, where
@@ -90,6 +89,8 @@ KA y axis from where the document places it, positive pitching the leading edge 
 
 A station is not tied to the aerodynamic mesh: it may cover several of its panels.
 A wing's station rows run from +y to -y of its KA frame, left tip to right tip.
+
+A station's ``wing`` may be null: the station is then a section of no wing, so it adds no lifting surface and no wing's span order counts it. Its ``points`` may be empty, as for a kinematic flap on a beam, whose attachment to a body is a tool's own columns. A ``wing`` that is not null must name a row of ``wings``.
 
 **A canopy is fabric meshed over existing points**, the way a ``.obj`` meshes faces
 over its vertices: its corners are rows of ``points``, never a second kind of point,

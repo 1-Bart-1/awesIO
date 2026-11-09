@@ -225,7 +225,7 @@ properties:
       is the angle its chord has turned through about the wing's KA y axis from
       where the document places it, positive pitching the leading edge up. A
       station is not tied to the aerodynamic mesh. A wing's stations run from +y
-      to -y of its KA frame.
+      to -y of its KA frame. A station with a null wing is a section of no wing.
     allOf:
       - $ref: "#/definitions/table"
       - properties:
@@ -236,10 +236,10 @@ properties:
                   Unique name of the station.
               - const: wing
                 description: >
-                  The wing the station is a section of.
+                  The wing the station is a section of, or null where no wing owns it.
               - const: points
                 description: >
-                  The points the section is made of.
+                  The points the section is made of, none where it has no points.
             minItems: 3
           units:
             items:
@@ -252,7 +252,7 @@ properties:
               type: array
               items:
                 - $ref: "#/definitions/component_name"
-                - $ref: "#/definitions/component_name"
+                - $ref: "#/definitions/optional_name"
                 - $ref: "#/definitions/name_list"
               minItems: 3
 

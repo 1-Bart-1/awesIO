@@ -232,13 +232,26 @@ def load_schema(data: dict, restrictive: bool = False) -> dict:
     return _enforce_no_additional_properties(schema) if restrictive else schema
 
 
+def station_errors(structure: dict) -> list[str]:
+    """A station naming a wing that is no row of `wings`; a null wing names none."""
+    wings = {row["name"] for row in table_rows(structure, "wings")}
+    return [f"station {row['name']!r} names wing {row['wing']!r}, not a row of wings"
+            for row in table_rows(structure, "spanwise_stations")
+            if row["wing"] is not None and row["wing"] not in wings]
+
+
 def check_document(data: dict, schema: dict) -> None:
-    """Raise unless `data` conforms to `schema`, and a system to its own material names."""
+    """Raise unless `data` conforms to `schema`, a system to its own material names and a
+    structure's stations to its wings."""
     _jsonschema_validate_modified(data, schema, registry=registry)
-    if data["metadata"]["schema"] == "system_schema.yml":
+    schema_name = data["metadata"]["schema"]
+    errors = []
+    if schema_name == "system_schema.yml":
         errors = system_errors(data)
-        if errors:
-            raise ValueError("\n".join(errors))
+    elif schema_name == "structure_schema.yml":
+        errors = station_errors(data)
+    if errors:
+        raise ValueError("\n".join(errors))
 
 
 def validate(
@@ -249,8 +262,8 @@ def validate(
 
     A structure is also checked against its system file: `system` where given, else
     `metadata.system` relative to the structure's own file. A structure passed as a
-    dictionary without `system` has no file to resolve against, so only its schema is
-    checked.
+    dictionary without `system` has no file to resolve against, so only the document
+    itself is checked.
 
     Args:
         input (dict | str | Path): Input data as a dictionary or a path to a YAML file 
