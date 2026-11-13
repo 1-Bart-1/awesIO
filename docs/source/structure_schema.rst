@@ -101,6 +101,11 @@ its parameters, and the file still carries every number that model needs. A read
 that does not implement a material's law fails on the elements naming it rather than
 substituting another.
 
+Where a tether starts
+---------------------
+
+A tether may say how it is placed. Its optional ``init_stretched_length`` is the length it is placed at: its end that is not held in the world moves along it, with what hangs from that end. ``init_tether_force`` is the tension the placed tether carries, which sets its segments' rest length from that placed length, and ``init_stretch_frac`` gives that rest length as a fraction of the placed length.
+
 Wings, their stations and their canopy
 ---------------------------------------
 
@@ -157,7 +162,7 @@ the whole element. How it curves between those ends belongs to the element: a
 Timoshenko beam carries curvature of its own, and only a shape its material's law
 cannot hold — or a taper — needs a chain of tubes.
 
-**A point rides a body or a tube, never both.** Its ``body`` names the rigid body it is fixed in, moving with it and passing its force and moment on to it. Its optional ``tube`` names a row of ``tubes``: the point moves with the tube's two bodies and passes its force on to them. A point held in the world rides neither. Draft-07 cannot state this across columns and blocks, so the structure's ``pointTubes`` keyword does, which ``awesio.validator`` enforces and other validators skip.
+**A point rides a body or a tube, never both.** Its ``body`` names the rigid body it is fixed in, moving with it and passing its force and moment on to it. Its optional ``tube`` names a row of ``tubes``: the point moves with the tube's two bodies and passes its force on to them. A point held in the world rides neither.
 
 Pairing with a state log
 ------------------------
@@ -180,7 +185,7 @@ unit or a single tube has no leading edge to orient it by, so its writer
 orients that frame as it likes and ``Q_KA2ENU`` is where the file says which
 orientation it chose.
 
-**Each wing says where its own frame is.** A ``wings`` row's ``pos_ENU`` is the origin of the wing's KA frame, a position that need not be a point, and its ``Q_KA2ENU`` the frame's orientation. That is the frame the tools that design a kite draw it in and its aerodynamic mesh is drawn in, so several wings of one shape share one mesh, and a reader takes positions into it as the :doc:`conventions` define. By convention the kite is placed at 90° elevation and 0° heading, so a single wing's rotation is the identity. Where and how a kite is flown is state, and not stated here.
+**Each wing says where its own frame is.** A ``wings`` row's ``pos_ENU`` is the origin of the wing's KA frame, a position that need not be a point, and its ``Q_KA2ENU`` the frame's orientation. That is the frame the tools that design a kite draw it in and its aerodynamic mesh is drawn in, so several wings of one shape share one mesh, and a reader takes positions into it as the :doc:`conventions` define. By convention the kite is placed at 90° elevation and 0° heading, so a single wing's rotation is the identity. Its optional ``body`` names the rigid body that frame moves with, or is null where the wing is on no body. Where and how a kite is flown is state, and not stated here.
 
 What is not described here
 --------------------------

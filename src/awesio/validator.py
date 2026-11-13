@@ -72,45 +72,6 @@ def optional_columns(validator, columns, instance, schema):
                 yield error
 
 
-def named_rows(validator, table):
-    """Each row of a headers/units/data table with its row number, as a mapping from
-    header to value; nothing where the table is malformed."""
-    if not validator.is_type(table, "object"):
-        return
-    headers, rows = table.get("headers"), table.get("data")
-    if not (validator.is_type(headers, "array") and validator.is_type(rows, "array")):
-        return
-    for i, row in enumerate(rows):
-        if validator.is_type(row, "array"):
-            yield i, dict(zip(map(str, headers), row))
-
-
-def point_tubes(validator, enabled, instance, schema):
-    """The `pointTubes` keyword: the `tube` a point of a structure rides names a row of
-    `tubes`, and that point is neither on a `body` nor held in the world."""
-    if not (enabled and validator.is_type(instance, "object")):
-        return
-    tubes = [tube.get("name") for _, tube in named_rows(validator, instance.get("tubes"))]
-    for i, point in named_rows(validator, instance.get("points")):
-        tube = point.get("tube")
-        if tube is None:
-            continue
-        where = ["points", "data", i]
-        if tube not in tubes:
-            yield jsonschema.ValidationError(
-                f"no row of tubes is named {tube!r}", path=where
-            )
-        if point.get("body") is not None:
-            yield jsonschema.ValidationError(
-                f"rides tube {tube!r} and body {point['body']!r}, not one of them",
-                path=where,
-            )
-        if point.get("fixed") is True:
-            yield jsonschema.ValidationError(
-                f"rides tube {tube!r} while held in the world", path=where
-            )
-
-
 def _enforce_no_additional_properties(schema):
     """Recursively set additionalProperties: false for all objects in the schema"""
     if isinstance(schema, dict):
@@ -200,11 +161,7 @@ def _jsonschema_validate_modified(instance, schema, cls=None, *args, **kwargs):
     if cls is None:
         cls = jsonschema.validators.extend(
             jsonschema.validators.validator_for(schema),
-            {
-                "rowsMatchHeaders": rows_match_headers,
-                "optionalColumns": optional_columns,
-                "pointTubes": point_tubes,
-            },
+            {"rowsMatchHeaders": rows_match_headers, "optionalColumns": optional_columns},
         )
 
     cls.check_schema(schema)

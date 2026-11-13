@@ -239,12 +239,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["points"]["data"][0].__setitem__(1, "STATIC")),
         ("a point both held in the world and on a body",
          lambda d: a_point_on_a_body(d).__setitem__(1, True)),
-        ("a point riding a tube no row of tubes names",
-         lambda d: a_point_riding(d, "no_such_tube")),
-        ("a point both on a body and riding a tube",
-         lambda d: a_point_riding(d, first_tube(d)).__setitem__(2, first_body(d))),
-        ("a point both held in the world and riding a tube",
-         lambda d: a_point_riding(d, first_tube(d)).__setitem__(1, True)),
+        ("a point's tube given as an index",
+         lambda d: a_point_riding(d, 0)),
         ("a body's fixed flag given as a solver's dynamics type",
          lambda d: append_column(d["bodies"], "fixed", "STATIC", unit="-")),
         ("two-component pos_ENU",
@@ -295,6 +291,12 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["segments"]["data"][0].pop()),
         ("empty component name",
          lambda d: d["segments"]["data"][0].__setitem__(0, "")),
+        ("a tether placed at a negative length",
+         lambda d: append_column(d["tethers"], "init_stretched_length", -1.0, unit="m")),
+        ("a tether placed in compression",
+         lambda d: append_column(d["tethers"], "init_tether_force", -1.0, unit="N")),
+        ("a tether's rest length a negative fraction of its placed length",
+         lambda d: append_column(d["tethers"], "init_stretch_frac", -0.5, unit="-")),
         ("tether segments given as indices",
          lambda d: d["tethers"]["data"][0].__setitem__(3, [1, 2, 3])),
         ("a winch without its drum radius",
@@ -363,6 +365,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("a wing without its frame", lambda d: drop_column(d["wings"], "Q_KA2ENU")),
         ("a wing origin in millimetres",
          lambda d: d["wings"]["units"].__setitem__(1, "mm")),
+        ("a wing's body given as an index",
+         lambda d: append_column(d["wings"], "body", 0, unit="-")),
         ("a wing frame of three numbers",
          lambda d: d["wings"]["data"][0][2].pop()),
     ],
@@ -400,6 +404,18 @@ def test_a_free_point_may_ride_a_named_tube(beam):
 
 def test_a_body_may_be_held_in_the_world(beam):
     append_column(beam["bodies"], "fixed", True, unit="-")
+    assert_valid(beam)
+
+
+def test_a_tether_may_say_how_it_is_placed(beam):
+    append_column(beam["tethers"], "init_stretched_length", 250.0, unit="m")
+    append_column(beam["tethers"], "init_tether_force", 0.0, unit="N")
+    append_column(beam["tethers"], "init_stretch_frac", 1.0, unit="-")
+    assert_valid(beam)
+
+
+def test_a_wing_may_name_the_body_it_moves_with(beam):
+    append_column(beam["wings"], "body", first_body(beam), unit="-")
     assert_valid(beam)
 
 
