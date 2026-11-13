@@ -199,7 +199,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
     for _, pair, *_ in rows(structure, "pulleys"):
         assert set(pair) <= segments
     for name, wing, members in rows(structure, "spanwise_stations"):
-        assert wing in names("wings") and set(members) <= points, name
+        assert wing is None or wing in names("wings"), name
+        assert set(members) <= points, name
     for _, start, end, members in rows(structure, "tethers"):
         assert {start, end} <= points and set(members) <= segments
     for name, pair, _, _, material, *_ in rows(structure, "tubes"):
@@ -253,8 +254,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["materials"]["data"][0].__setitem__(2, [970.0, 5.5e10])),
         ("a station holding a bare point name",
          lambda d: d["spanwise_stations"]["data"][0].__setitem__(2, "le_left")),
-        ("a station without its wing",
-         lambda d: d["spanwise_stations"]["data"][0].__setitem__(1, None)),
+        ("a station without its wing column",
+         lambda d: drop_column(d["spanwise_stations"], "wing")),
         ("a body inertia given as principal moments",
          lambda d: d["bodies"]["data"][0].__setitem__(4, [1.0, 1.0, 1.0])),
         ("a three-component body frame",
@@ -379,6 +380,11 @@ def test_a_wing_may_have_no_canopy(structure):
     structure["wings"]["data"][0][3] = None
     structure.pop("canopy_faces")
     assert_valid(structure)
+
+
+def test_a_station_may_belong_to_no_wing_and_have_no_points(beam):
+    beam["spanwise_stations"]["data"].append(["unowned_station", None, []])
+    assert_valid(beam)
 
 
 def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
