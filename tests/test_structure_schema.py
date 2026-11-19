@@ -39,6 +39,22 @@ def a_point_on_a_body(structure):
     return next(row for row in rows(structure, "points") if row[2] is not None)
 
 
+def a_point_riding(structure, tube):
+    """Add a null `tube` column and return the first free point, set to ride `tube`."""
+    append_column(structure["points"], "tube", None, unit="-")
+    point = next(row for row in rows(structure, "points") if row[2] is None and not row[1])
+    point[-1] = tube
+    return point
+
+
+def first_tube(structure):
+    return rows(structure, "tubes")[0][0]
+
+
+def first_body(structure):
+    return rows(structure, "bodies")[0][0]
+
+
 def append_column(table, header, value, unit=None):
     """Append a column to every row of `table`, leaving its units short without `unit`."""
     table["headers"].append(header)
@@ -223,6 +239,10 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["points"]["data"][0].__setitem__(1, "STATIC")),
         ("a point both held in the world and on a body",
          lambda d: a_point_on_a_body(d).__setitem__(1, True)),
+        ("a point's tube given as an index",
+         lambda d: a_point_riding(d, 0)),
+        ("a body's fixed flag given as a solver's dynamics type",
+         lambda d: append_column(d["bodies"], "fixed", "STATIC", unit="-")),
         ("two-component pos_ENU",
          lambda d: d["points"]["data"][0].__setitem__(3, [0.0, 0.0])),
         ("a point's body given as an index",
@@ -271,6 +291,12 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: d["segments"]["data"][0].pop()),
         ("empty component name",
          lambda d: d["segments"]["data"][0].__setitem__(0, "")),
+        ("a tether placed at a negative length",
+         lambda d: append_column(d["tethers"], "init_stretched_length", -1.0, unit="m")),
+        ("a tether placed in compression",
+         lambda d: append_column(d["tethers"], "init_tether_force", -1.0, unit="N")),
+        ("a tether's rest length a negative fraction of its placed length",
+         lambda d: append_column(d["tethers"], "init_stretch_frac", -0.5, unit="-")),
         ("tether segments given as indices",
          lambda d: d["tethers"]["data"][0].__setitem__(3, [1, 2, 3])),
         ("a winch without its drum radius",
@@ -339,6 +365,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("a wing without its frame", lambda d: drop_column(d["wings"], "Q_KA2ENU")),
         ("a wing origin in millimetres",
          lambda d: d["wings"]["units"].__setitem__(1, "mm")),
+        ("a wing's body given as an index",
+         lambda d: append_column(d["wings"], "body", 0, unit="-")),
         ("a wing frame of three numbers",
          lambda d: d["wings"]["data"][0][2].pop()),
     ],
@@ -367,6 +395,28 @@ def test_the_core_alone_is_a_valid_structure(structure):
                 drop_column(structure[name], header)
     drop_column(structure["pulleys"], "efficiency")
     assert_valid(structure)
+
+
+def test_a_free_point_may_ride_a_named_tube(beam):
+    a_point_riding(beam, first_tube(beam))
+    assert_valid(beam)
+
+
+def test_a_body_may_be_held_in_the_world(beam):
+    append_column(beam["bodies"], "fixed", True, unit="-")
+    assert_valid(beam)
+
+
+def test_a_tether_may_say_how_it_is_placed(beam):
+    append_column(beam["tethers"], "init_stretched_length", 250.0, unit="m")
+    append_column(beam["tethers"], "init_tether_force", 0.0, unit="N")
+    append_column(beam["tethers"], "init_stretch_frac", 1.0, unit="-")
+    assert_valid(beam)
+
+
+def test_a_wing_may_name_the_body_it_moves_with(beam):
+    append_column(beam["wings"], "body", first_body(beam), unit="-")
+    assert_valid(beam)
 
 
 def test_a_material_may_name_any_law_with_any_parameters(beam):
