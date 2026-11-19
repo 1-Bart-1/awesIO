@@ -10,7 +10,7 @@ import jsonschema.validators
 import math
 import warnings
 
-from .yaml import load_yaml
+from .yaml import _get_YAML, load_yaml
 from .schemas import schemaPath, schema_validation_error_formatter
 
 
@@ -107,9 +107,8 @@ def system_errors(system: dict) -> list[str]:
 
 def structure_errors(structure: dict, system: dict) -> list[str]:
     """Where a structure disagrees with the system it discretises: a material or tether
-    name that does not resolve, a tether naming a segment the structure lacks, a tether
-    segment not of the tether's material or diameter, or rest lengths not adding up to
-    the tether's length. A column left out states nothing."""
+    name that does not resolve, a tether naming a segment the structure lacks, or a
+    tether segment the system's tether disagrees with. A column left out states nothing."""
     materials = {material["name"] for material in system["materials"]}
     errors = []
     for block, column in (("segments", "material"), ("tubes", "material"),
@@ -137,8 +136,9 @@ def structure_errors(structure: dict, system: dict) -> list[str]:
 
 
 def tether_errors(name: str, tether: dict, segments: list[dict]) -> list[str]:
-    """Where a tether's segments disagree with the system's material, diameter and length
-    of it."""
+    """Where a tether's segments disagree with the system's tether: a segment naming
+    another material or giving a diameter of its own, or rest lengths not adding up to
+    its length."""
     errors = [
         f"tether {name!r} segment {segment['name']!r} names material "
         f"{segment['material']!r}, the system says {tether['material']!r}"
@@ -147,11 +147,9 @@ def tether_errors(name: str, tether: dict, segments: list[dict]) -> list[str]:
         and segment["material"] != tether["material"]
     ]
     errors += [
-        f"tether {name!r} segment {segment['name']!r} has diameter "
-        f"{segment['diameter']}, the system says {tether['diameter']}"
-        for segment in segments
-        if "diameter" in segment and "diameter" in tether
-        and not math.isclose(segment["diameter"], tether["diameter"], rel_tol=TOLERANCE)
+        f"tether {name!r} segment {segment['name']!r} gives a diameter, "
+        "which the system's tether owns"
+        for segment in segments if segment.get("diameter") is not None
     ]
     if all("rest_length" in segment for segment in segments):
         total = math.fsum(segment["rest_length"] for segment in segments)
@@ -163,12 +161,43 @@ def tether_errors(name: str, tether: dict, segments: list[dict]) -> list[str]:
     return errors
 
 
+def include_tags(node) -> list[str]:
+    """The targets of the `!include` tags under a composed YAML `node`, in document
+    order."""
+    if node.tag == "!include":
+        return [node.value]
+    if not isinstance(node.value, list):
+        return []
+    children = [part for child in node.value
+                for part in (child if isinstance(child, tuple) else (child,))]
+    return [target for child in children for target in include_tags(child)]
+
+
+def hashed_files(path: Path) -> list[Path]:
+    """`path` and each file it pulls in with `!include`, depth first in document order."""
+    if path.suffix.lower() not in (".yml", ".yaml"):
+        return [path]
+    root = _get_YAML().compose(path)
+    targets = include_tags(root) if root is not None else []
+    included = (hashed_files(path.parent / target) for target in targets)
+    return [path, *(file for files in included for file in files)]
+
+
+def system_sha(path: str | Path) -> str:
+    """Lowercase hex SHA-256 of the bytes of the system file at `path` followed by those
+    of each file it pulls in with `!include`, depth first in document order."""
+    digest = hashlib.sha256()
+    for file in hashed_files(Path(path)):
+        digest.update(file.read_bytes())
+    return digest.hexdigest()
+
+
 def check_against_system(structure: dict, system_path: Path) -> None:
     """Raise a ValueError unless the file at `system_path` is the valid system whose hash
     `structure` quotes, and `structure` agrees with it."""
     if not system_path.is_file():
         raise ValueError(f"system file {system_path} not found")
-    digest = hashlib.sha256(system_path.read_bytes()).hexdigest()
+    digest = system_sha(system_path)
     if digest != structure["metadata"]["system_sha"]:
         raise ValueError(
             f"metadata.system_sha is {structure['metadata']['system_sha']}, "

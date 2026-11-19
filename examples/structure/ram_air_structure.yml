@@ -36,8 +36,8 @@ segments:
     - [left_bridle, [left_bottom, control_unit], 3.44093, 0.002, dyneema]
     - [middle_bridle, [middle_bottom, control_unit], 2.8, 0.002, dyneema]
     - [right_bridle, [right_bottom, control_unit], 3.44093, 0.002, dyneema]
-    - [tether_1, [control_unit, tether_middle], 50.0, 0.003, dyneema]
-    - [tether_2, [tether_middle, ground], 50.0, 0.003, dyneema]
+    - [tether_1, [control_unit, tether_middle], 50.0, null, dyneema]
+    - [tether_2, [tether_middle, ground], 50.0, null, dyneema]
 
 spanwise_stations:
   headers: [name, wing, points]

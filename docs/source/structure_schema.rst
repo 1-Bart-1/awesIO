@@ -36,7 +36,8 @@ Tables, not nesting
 -------------------
 
 Every block is a ``headers``/``units``/``data`` table and every reference is by name,
-so a file reads as a spreadsheet and rows reorder without rewriting indices:
+in a tool's own column too, never by row number, so a file reads as a spreadsheet and a
+row inserted or reordered breaks nothing:
 
 .. code-block:: yaml
 
@@ -44,7 +45,7 @@ so a file reads as a spreadsheet and rows reorder without rewriting indices:
      headers: [name, points, rest_length, diameter, material]
      units: [-, -, m, m, -]
      data:
-       - [seg_1, [ground, tether_1], 10.0, 0.004, dyneema]
+       - [bridle_1, [kcu, bridle_le_1], 2.5, 0.002, dyneema]
 
 What an element connects is one column holding a tuple of distinct names — two for a
 segment's ``points``, a pulley's ``segments`` and a tube's ``bodies``, three or four
@@ -116,7 +117,7 @@ A body whose ``fixed`` is true is held in the world and nothing moves it; false 
 
 Every mass in a document is extra mass, never a total: a reader adds what it
 derives. A point's ``extra_mass`` leaves out its segments and canopy faces. A reader
-adds half of each attached segment's mass, from its ``diameter``, its ``rest_length`` and its
+adds half of each attached segment's mass, from its ``diameter`` (on a tether's segment, the system's tether's), its ``rest_length`` and its
 material's density, and an equal share of each face the point is a corner of: the
 face's area times its material's areal density. A face's area is half the norm of
 the cross product of its diagonals, or of two edges for a triangle, which holds for

@@ -21,13 +21,13 @@ points:
     - [right_drum, true, null, [0.0, -5.0, 0.0]]
 
 segments:
-  headers: [name, points, rest_length, diameter, material]
-  units: ["-", "-", m, m, "-"]
+  headers: [name, points, rest_length, material]
+  units: ["-", "-", m, "-"]
   data:
-    - [left_tether_1, [left_wing_joint, left_tether_middle], 170.0, 0.01, dyneema]
-    - [left_tether_2, [left_tether_middle, left_drum], 170.0, 0.01, dyneema]
-    - [right_tether_1, [right_wing_joint, right_tether_middle], 170.0, 0.01, dyneema]
-    - [right_tether_2, [right_tether_middle, right_drum], 170.0, 0.01, dyneema]
+    - [left_tether_1, [left_wing_joint, left_tether_middle], 170.0, dyneema]
+    - [left_tether_2, [left_tether_middle, left_drum], 170.0, dyneema]
+    - [right_tether_1, [right_wing_joint, right_tether_middle], 170.0, dyneema]
+    - [right_tether_2, [right_tether_middle, right_drum], 170.0, dyneema]
 
 tethers:
   headers: [name, start_point, end_point, segments]

@@ -11,7 +11,7 @@ import pytest
 import ryml
 import yaml
 
-from awesio.validator import validate
+from awesio.validator import system_sha, validate
 from awesio.yaml import load_yaml
 
 EXAMPLE_DIR = Path(__file__).parent.parent / "examples/structure"
@@ -59,10 +59,15 @@ def a_point_on_a_body(structure):
 
 
 def a_point_riding(structure, tube):
-    """Add a null `tube` column and return the first free point, set to ride `tube`."""
-    append_column(structure["points"], "tube", None, unit="-")
-    point = next(row for row in rows(structure, "points") if row[2] is None and not row[1])
-    point[-1] = tube
+    """Return the first free point riding no tube, set to ride `tube`, adding a null
+    `tube` column where there is none."""
+    points = structure["points"]
+    if "tube" not in points["headers"]:
+        append_column(points, "tube", None, unit="-")
+    column = points["headers"].index("tube")
+    point = next(row for row in points["data"]
+                 if row[2] is None and not row[1] and row[column] is None)
+    point[column] = tube
     return point
 
 
@@ -72,6 +77,16 @@ def first_tube(structure):
 
 def first_body(structure):
     return rows(structure, "bodies")[0][0]
+
+
+def set_column(table, header, value, unit):
+    """Set the column under `header` to `value` in every row, appending it where absent."""
+    if header not in table["headers"]:
+        append_column(table, header, value, unit)
+        return
+    i = table["headers"].index(header)
+    for row in table["data"]:
+        row[i] = value
 
 
 def append_column(table, header, value, unit=None):
@@ -103,11 +118,11 @@ def append_header(table, header, unit):
     table["units"].append(unit)
 
 
-def assert_valid(data):
+def assert_valid(data, system=None):
     """`validate` warns rather than raises, so a passing file must warn nothing."""
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
-        validate(data)
+        validate(data, system=system)
 
 
 def assert_invalid(data):
@@ -297,11 +312,11 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("empty component name",
          lambda d: d["segments"]["data"][0].__setitem__(0, "")),
         ("a tether placed at a negative length",
-         lambda d: append_column(d["tethers"], "init_stretched_length", -1.0, unit="m")),
+         lambda d: set_column(d["tethers"], "init_stretched_length", -1.0, "m")),
         ("a tether placed in compression",
-         lambda d: append_column(d["tethers"], "init_tether_force", -1.0, unit="N")),
+         lambda d: set_column(d["tethers"], "init_tether_force", -1.0, "N")),
         ("a tether's rest length a negative fraction of its placed length",
-         lambda d: append_column(d["tethers"], "init_stretch_frac", -0.5, unit="-")),
+         lambda d: set_column(d["tethers"], "init_stretch_frac", -0.5, "-")),
         ("tether segments given as indices",
          lambda d: d["tethers"]["data"][0].__setitem__(3, [1, 2, 3])),
         ("a winch without its drum radius",
@@ -419,9 +434,9 @@ def test_a_body_may_be_held_in_the_world(beam):
 
 
 def test_a_tether_may_say_how_it_is_placed(beam):
-    append_column(beam["tethers"], "init_stretched_length", 250.0, unit="m")
-    append_column(beam["tethers"], "init_tether_force", 0.0, unit="N")
-    append_column(beam["tethers"], "init_stretch_frac", 1.0, unit="-")
+    set_column(beam["tethers"], "init_stretched_length", 250.0, "m")
+    set_column(beam["tethers"], "init_tether_force", 0.0, "N")
+    set_column(beam["tethers"], "init_stretch_frac", 1.0, "-")
     assert_valid(beam)
 
 
@@ -457,13 +472,13 @@ def tether_segments(structure):
     return [row for row in rows(structure, "segments") if row[0] in tether["segments"]]
 
 
-def string_scalars(node):
-    """Every string value under `node`, at any depth."""
+def scalars(node, kind=str):
+    """Every value of type `kind` under `node`, at any depth; booleans are no integers."""
     if isinstance(node, dict):
-        return [text for value in node.values() for text in string_scalars(value)]
+        return [scalar for value in node.values() for scalar in scalars(value, kind)]
     if isinstance(node, list):
-        return [text for value in node for text in string_scalars(value)]
-    return [node] if isinstance(node, str) else []
+        return [scalar for value in node for scalar in scalars(value, kind)]
+    return [node] if isinstance(node, kind) and not isinstance(node, bool) else []
 
 
 def with_system(tmp_path, structure, edit_system=lambda system: None):
@@ -472,7 +487,7 @@ def with_system(tmp_path, structure, edit_system=lambda system: None):
     edit_system(system)
     path = tmp_path / "system.yml"
     path.write_text(yaml.safe_dump(system))
-    structure["metadata"]["system_sha"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    structure["metadata"]["system_sha"] = system_sha(path)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always", UserWarning)
         validate(structure, system=path)
@@ -504,9 +519,9 @@ def test_a_tether_the_system_lacks_is_refused(tmp_path, beam):
     assert "tether 'kite_string' is not in the system" in with_system(tmp_path, beam)
 
 
-def test_a_tether_segment_of_another_diameter_is_refused(tmp_path, beam):
-    tether_segments(beam)[0][3] = 0.005
-    assert "has diameter 0.005" in with_system(tmp_path, beam)
+def test_a_tether_segment_giving_the_diameter_its_tether_owns_is_refused(tmp_path, beam):
+    tether_segments(beam)[0][3] = 0.004
+    assert "gives a diameter" in with_system(tmp_path, beam)
 
 
 def test_a_tether_segment_of_another_material_is_refused(tmp_path, beam):
@@ -538,6 +553,44 @@ def test_a_system_edited_after_the_structure_was_written_is_refused(tmp_path, be
         validate(beam, system=system)
 
 
+def a_system_including(tmp_path, materials):
+    """The V3 system with its materials moved to a file it pulls in with `!include`."""
+    system = load_yaml(V3_SYSTEM)
+    (tmp_path / "materials.yml").write_text(yaml.safe_dump(materials))
+    system["materials"] = "INCLUDE"
+    path = tmp_path / "system.yml"
+    path.write_text(yaml.safe_dump(system).replace("INCLUDE", "!include materials.yml"))
+    return path
+
+
+def test_a_system_without_includes_hashes_as_its_bytes():
+    assert system_sha(V3_SYSTEM) == hashlib.sha256(V3_SYSTEM.read_bytes()).hexdigest()
+
+
+def test_the_system_hash_covers_the_files_it_includes(tmp_path):
+    path = a_system_including(tmp_path, load_yaml(V3_SYSTEM)["materials"])
+    expected = hashlib.sha256(path.read_bytes() + (tmp_path / "materials.yml").read_bytes())
+    assert system_sha(path) == expected.hexdigest()
+
+
+def test_a_file_the_system_includes_edited_after_the_structure_is_refused(tmp_path, beam):
+    materials = load_yaml(V3_SYSTEM)["materials"]
+    path = a_system_including(tmp_path, materials)
+    beam["metadata"]["system_sha"] = system_sha(path)
+    assert_valid(beam, system=path)
+    materials[0]["parameters"]["density"] *= 2
+    (tmp_path / "materials.yml").write_text(yaml.safe_dump(materials))
+    with pytest.warns(UserWarning, match="hashes to"):
+        validate(beam, system=path)
+
+
+def test_no_example_refers_to_a_row_by_its_number(structure):
+    """No column of the schema holds an integer, so one in any column is a row number."""
+    tables = [block for block in structure.values() if "data" in block]
+    assert not [value for table in tables for row in table["data"]
+                for value in scalars(row, int)]
+
+
 def test_a_structure_naming_a_system_file_that_is_not_there_is_refused(tmp_path):
     structure = shutil.copy(EXAMPLE_DIR / "v3_beam_structure.yml", tmp_path)
     with pytest.warns(UserWarning, match="not found"):
@@ -554,7 +607,7 @@ def test_an_invalid_system_file_is_refused_with_its_structure(tmp_path, beam):
 
 def test_a_document_that_is_not_a_system_is_refused_as_its_system(tmp_path, beam):
     other = Path(shutil.copy(EXAMPLE_DIR / "v3_psm_structure.yml", tmp_path))
-    beam["metadata"]["system_sha"] = hashlib.sha256(other.read_bytes()).hexdigest()
+    beam["metadata"]["system_sha"] = system_sha(other)
     with pytest.warns(UserWarning, match="required property"):
         validate(beam, system=other)
 
@@ -569,5 +622,5 @@ def test_a_strict_yaml_1_2_reader_loads_the_examples(path):
 def test_every_number_reads_as_a_number_in_pyyaml(path):
     """PyYAML reads an exponent lacking a dot or a sign, such as `1e-12`, as a string."""
     number = re.compile(r"[-+]?(\.\d+|\d+(\.\d*)?)[eE][-+]?\d+$")
-    assert not [text for text in string_scalars(yaml.safe_load(path.read_text()))
+    assert not [text for text in scalars(yaml.safe_load(path.read_text()))
                 if number.match(text)]
