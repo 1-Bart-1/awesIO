@@ -217,7 +217,7 @@ def test_every_reference_resolves_to_a_named_row(structure):
     for name, wing, members in rows(structure, "spanwise_stations"):
         assert wing in names("wings") and set(members) <= points, name
     for _, start, end, members in rows(structure, "tethers"):
-        assert {start, end} <= points and set(members) <= segments
+        assert {start, end} - {None} <= points and set(members) <= segments
     for name, pair, _, _, material, *_ in rows(structure, "tubes"):
         assert set(pair) <= bodies and material in materials, name
     canopies = {name: material for name, _, _, material, *_ in rows(structure, "wings")}
@@ -365,6 +365,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
         ("a wing without its frame", lambda d: drop_column(d["wings"], "Q_KA2ENU")),
         ("a wing origin in millimetres",
          lambda d: d["wings"]["units"].__setitem__(1, "mm")),
+        ("a tether's end given as an index",
+         lambda d: d["tethers"]["data"][0].__setitem__(2, 0)),
         ("a wing's body given as an index",
          lambda d: append_column(d["wings"], "body", 0, unit="-")),
         ("a wing frame of three numbers",
@@ -411,6 +413,12 @@ def test_a_tether_may_say_how_it_is_placed(beam):
     append_column(beam["tethers"], "init_stretched_length", 250.0, unit="m")
     append_column(beam["tethers"], "init_tether_force", 0.0, unit="N")
     append_column(beam["tethers"], "init_stretch_frac", 1.0, unit="-")
+    assert_valid(beam)
+
+
+def test_a_tether_may_take_its_ends_from_its_segments(beam):
+    """A null start or end is its first segment's first or last segment's second point."""
+    beam["tethers"]["data"][0][1:3] = [None, None]
     assert_valid(beam)
 
 
