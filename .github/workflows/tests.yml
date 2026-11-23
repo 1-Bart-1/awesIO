@@ -25,6 +25,7 @@ jobs:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ['3.10', '3.12']
 
@@ -48,4 +49,5 @@ jobs:
         run: pytest tests/ -v
 
       - name: Validate example files
+        if: ${{ !cancelled() }}
         run: python scripts/validate_yaml.py
