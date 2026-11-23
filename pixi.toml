@@ -20,3 +20,7 @@ referencing = "*"
 pip = "*"
 pytest = ">=7.0"
 pytest-cov = "*"
+pyyaml = "*"
+
+[pypi-dependencies]
+rapidyaml = "*"
