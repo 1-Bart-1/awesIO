@@ -1,7 +1,7 @@
 metadata:
   name: v3_kite
   description: "The materials and the tethers of the TU Delft V3 kite as V3Kite.jl's Timoshenko-beam and particle-lattice projects build it. The two projects carry a different main tether, so the file lists both, each named as its structure names it."
-  note: "Written by OpenSourceAWE/KiteGeometry.jl@f9a13c9 reading and writing, under OpenSourceAWE/SymbolicAWEModels.jl@78601c5, the files of OpenSourceAWE/V3Kite.jl@fd73944: `data/struc_geometry_beam.yaml` under `data/system_beam.yaml` and `data/struc_geometry.yaml` under `data/system_psm.yaml`."
+  note: "Written by OpenSourceAWE/KiteGeometry.jl@37d5c4d reading and writing, under OpenSourceAWE/SymbolicAWEModels.jl@e89cbb4, the files of OpenSourceAWE/V3Kite.jl@fd73944: `data/struc_geometry_beam.yaml` under `data/system_beam.yaml` and `data/struc_geometry.yaml` under `data/system_psm.yaml`."
   awesIO_version: "0.1.0"
   schema: system_schema.yml
 materials:
@@ -775,6 +775,6 @@ components:
         lower_tether_joint:
           id: "39"
       structure:
-        length: 100.00000000000001
+        length: 99.99999999999997
         diameter: 0.0135
         material: dyneema

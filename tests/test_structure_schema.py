@@ -200,19 +200,22 @@ def direction(start, end):
 
 
 def test_every_point_is_joined_to_the_rest(structure):
-    """Segments, canopy faces, a point's body and tubes make the example one mechanism."""
+    """Segments, canopy faces, the body or tube a point rides and tubes make the example one
+    mechanism."""
     neighbours = {}
 
     def join(*names):
         for name in names:
             neighbours.setdefault(name, set()).update(names)
 
-    for name, _, body, *_ in rows(structure, "points"):
-        join(name, *([("body", body)] if body else []))
+    tube_bodies = {tube["name"]: tube["bodies"] for tube in records(structure, "tubes")}
+    for point in records(structure, "points"):
+        ridden = [point["body"]] if point.get("body") else tube_bodies.get(point.get("tube"), [])
+        join(point["name"], *(("body", body) for body in ridden))
     for _, endpoints, *_ in rows(structure, "segments"):
         join(*endpoints)
-    for _, pair, *_ in rows(structure, "tubes"):
-        join(*(("body", body) for body in pair))
+    for bodies in tube_bodies.values():
+        join(*(("body", body) for body in bodies))
     for *_, corners in rows(structure, "canopy_faces"):
         join(*corners)
     reached, frontier = set(), [structure["points"]["data"][0][0]]
@@ -441,7 +444,7 @@ def test_a_tether_may_say_how_it_is_placed(beam):
 
 
 def test_a_wing_may_name_the_body_it_moves_with(beam):
-    append_column(beam["wings"], "body", first_body(beam), unit="-")
+    set_column(beam["wings"], "body", first_body(beam), unit="-")
     assert_valid(beam)
 
 
@@ -455,7 +458,7 @@ def test_a_wing_may_have_no_canopy(structure):
 
 def test_a_reader_accepts_columns_appended_by_a_later_minor_version(structure):
     """Blocks are addressed by header, so appended columns must not break v1.0."""
-    append_column(structure["segments"], "damping_per_stiffness", 0.002, unit="s")
+    append_column(structure["segments"], "added_in_a_later_minor_version", 0.002, unit="s")
     assert_valid(structure)
 
 
