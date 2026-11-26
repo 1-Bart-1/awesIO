@@ -162,7 +162,7 @@ the whole element. How it curves between those ends belongs to the element: a
 Timoshenko beam carries curvature of its own, and only a shape its material's law
 cannot hold — or a taper — needs a chain of tubes.
 
-**A point rides a body or a tube, never both.** Its ``body`` names the rigid body it is fixed in, moving with it and passing its force and moment on to it. Its optional ``tube`` names a row of ``tubes``: the point moves with the tube's two bodies and passes its force on to them. A point held in the world rides neither.
+**A point rides a body or a tube, never both.** Its ``body`` names the rigid body it is fixed in, moving with it and passing its force and moment on to it. Its optional ``tube`` names a row of ``tubes``: the point moves with the tube's two bodies and passes its force on to them. A point held in the world rides neither. Its optional ``wing`` names the wing it belongs to and flies with, a bridle or pulley point among them, or is null for a point of no wing; a point of a wing's station belongs to that wing and names no other.
 
 Pairing with a state log
 ------------------------

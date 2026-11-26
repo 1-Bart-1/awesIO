@@ -55,6 +55,10 @@ def first_body(structure):
     return rows(structure, "bodies")[0][0]
 
 
+def first_wing(structure):
+    return rows(structure, "wings")[0][0]
+
+
 def append_column(table, header, value, unit=None):
     """Append a column to every row of `table`, leaving its units short without `unit`."""
     table["headers"].append(header)
@@ -202,30 +206,49 @@ def test_stations_run_from_the_left_tip_to_the_right(beam):
     assert along_span == sorted(along_span, reverse=True)
 
 
-def test_every_reference_resolves_to_a_named_row(structure):
+def unresolved_references(structure):
+    """Rows naming a row that is not there, or a station point naming another wing."""
     def names(block):
         return {row[0] for row in rows(structure, block)}
 
     points, segments, bodies = names("points"), names("segments"), names("bodies")
-    materials = names("materials")
+    materials, wings = names("materials"), names("wings")
+    headers = structure["points"]["headers"]
+    wing_of = ({row[0]: row[headers.index("wing")] for row in rows(structure, "points")}
+               if "wing" in headers else {})
+    unresolved = []
     for name, _, body, *_ in rows(structure, "points"):
-        assert body is None or body in bodies, name
+        if body not in bodies | {None} or wing_of.get(name) not in wings | {None}:
+            unresolved.append(name)
     for name, endpoints, _, _, material, *_ in rows(structure, "segments"):
-        assert set(endpoints) <= points and material in materials, name
-    for _, pair, *_ in rows(structure, "pulleys"):
-        assert set(pair) <= segments
+        if not set(endpoints) <= points or material not in materials:
+            unresolved.append(name)
+    for name, pair, *_ in rows(structure, "pulleys"):
+        if not set(pair) <= segments:
+            unresolved.append(name)
     for name, wing, members in rows(structure, "spanwise_stations"):
-        assert wing in names("wings") and set(members) <= points, name
-    for _, start, end, members in rows(structure, "tethers"):
-        assert {start, end} <= points and set(members) <= segments
+        if wing not in wings or not set(members) <= points or any(
+                wing_of.get(member) not in {wing, None} for member in members):
+            unresolved.append(name)
+    for name, start, end, members in rows(structure, "tethers"):
+        if not {start, end} <= points or not set(members) <= segments:
+            unresolved.append(name)
     for name, pair, _, _, material, *_ in rows(structure, "tubes"):
-        assert set(pair) <= bodies and material in materials, name
+        if not set(pair) <= bodies or material not in materials:
+            unresolved.append(name)
     canopies = {name: material for name, _, _, material, *_ in rows(structure, "wings")}
     for name, material in canopies.items():
-        assert material is None or material in materials, name
+        if material not in materials | {None}:
+            unresolved.append(name)
     with_a_canopy = {name for name, material in canopies.items() if material}
     for name, wing, corners, *_ in rows(structure, "canopy_faces"):
-        assert wing in with_a_canopy and set(corners) <= points, name
+        if wing not in with_a_canopy or not set(corners) <= points:
+            unresolved.append(name)
+    return unresolved
+
+
+def test_every_reference_resolves_to_a_named_row(structure):
+    assert unresolved_references(structure) == []
 
 
 @pytest.mark.parametrize(
@@ -241,6 +264,8 @@ def test_every_reference_resolves_to_a_named_row(structure):
          lambda d: a_point_on_a_body(d).__setitem__(1, True)),
         ("a point's tube given as an index",
          lambda d: a_point_riding(d, 0)),
+        ("a point's wing given as an index",
+         lambda d: append_column(d["points"], "wing", 0, unit="-")),
         ("a body's fixed flag given as a solver's dynamics type",
          lambda d: append_column(d["bodies"], "fixed", "STATIC", unit="-")),
         ("two-component pos_ENU",
@@ -417,6 +442,33 @@ def test_a_tether_may_say_how_it_is_placed(beam):
 def test_a_wing_may_name_the_body_it_moves_with(beam):
     append_column(beam["wings"], "body", first_body(beam), unit="-")
     assert_valid(beam)
+
+
+def a_station_point_of(structure, wing):
+    """Add a null `wing` column and return the first point of a station, set to `wing`."""
+    append_column(structure["points"], "wing", None, unit="-")
+    member = rows(structure, "spanwise_stations")[0][2][0]
+    point = next(row for row in rows(structure, "points") if row[0] == member)
+    point[-1] = wing
+    return point
+
+
+def test_a_point_may_name_the_wing_it_flies_with(beam):
+    a_station_point_of(beam, first_wing(beam))
+    assert_valid(beam)
+    assert unresolved_references(beam) == []
+
+
+def test_a_point_naming_a_wing_that_does_not_exist_is_refused(beam):
+    point = a_station_point_of(beam, "no_such_wing")
+    station = rows(beam, "spanwise_stations")[0][0]
+    assert unresolved_references(beam) == [point[0], station]
+
+
+def test_a_station_point_naming_another_wing_is_refused(beam):
+    beam["wings"]["data"].append(["second_wing", *rows(beam, "wings")[0][1:]])
+    a_station_point_of(beam, "second_wing")
+    assert unresolved_references(beam) == [rows(beam, "spanwise_stations")[0][0]]
 
 
 def test_a_material_may_name_any_law_with_any_parameters(beam):
